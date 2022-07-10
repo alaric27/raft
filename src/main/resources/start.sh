@@ -1,0 +1,1 @@
+nohup java -Dfile.encoding=utf-8 -Dloader.path=/home/server/raft -jar raft.jar  2>&1 1>/dev/null &
