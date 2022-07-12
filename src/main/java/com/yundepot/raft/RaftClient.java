@@ -16,23 +16,20 @@ import com.yundepot.rpc.RpcClient;
  */
 public class RaftClient {
 
-    /**
-     * 当前连接的节点
-     */
-    private Server server;
+    private Server leader;
     private RpcClient rpcClient;
     private RaftAdminService adminService;
     private PairService pairService;
+    private Cluster cluster;
 
     public RaftClient(String cluster) {
         this(ClusterUtil.parserCluster(cluster));
     }
 
     public RaftClient(Cluster cluster) {
-        this.server = cluster.getServers().stream().findAny().get();
-        this.rpcClient = new RpcClient(server.getHost(), server.getPort());
-        this.adminService = rpcClient.create(RaftAdminService.class);
-        this.pairService = rpcClient.create(PairService.class);
+        this.cluster = cluster;
+        this.leader = cluster.getServers().stream().findAny().get();
+        connect(leader);
     }
 
     /**
@@ -40,11 +37,12 @@ public class RaftClient {
      */
     public void put(byte[] key, byte[] value) {
         // todo 连接异常情况
-        Response response = pairService.put(key, value);
-        handleResponse(response);
-        // todo 优雅的重试方案
-        if (response.getCode() == ResponseCode.NOT_LEADER.getValue()) {
-            put(key, value);
+        Response response = null;
+        try {
+            response = pairService.put(key, value);
+            handleResponse(response);
+        } catch (Exception e) {
+            System.out.println();
         }
     }
 
@@ -109,12 +107,20 @@ public class RaftClient {
     private void handleResponse(Response response) {
         // 重定向到leader节点
         if (ResponseCode.NOT_LEADER.getValue() == response.getCode()) {
-            Server leader = (Server) response.getData();
-            this.server = leader;
-            rpcClient.shutdown();
-            rpcClient = new RpcClient(server.getHost(), server.getPort());
-            this.adminService = rpcClient.create(RaftAdminService.class);
-            this.pairService = rpcClient.create(PairService.class);
+            Server server = (Server) response.getData();
+            connect(server);
         }
+    }
+
+    private void connect(Server leader) {
+        if (rpcClient != null) {
+            rpcClient.shutdown();
+        }
+
+        this.leader = leader;
+        rpcClient = new RpcClient(this.leader.getHost(), this.leader.getPort());
+        rpcClient.start();
+        this.adminService = rpcClient.create(RaftAdminService.class);
+        this.pairService = rpcClient.create(PairService.class);
     }
 }
