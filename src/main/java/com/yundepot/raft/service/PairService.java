@@ -1,7 +1,7 @@
 package com.yundepot.raft.service;
 
 
-import com.yundepot.raft.bean.Pair;
+import com.yundepot.raft.bean.Response;
 
 /**
  * @author zhaiyanan
@@ -11,19 +11,13 @@ public interface PairService {
 
     /**
      * 写入数据
-     * @param pair
      */
-    void put(Pair pair);
-
-    /**
-     * 写入数据
-     */
-    void put(byte[] key, byte[] value);
+    Response put(byte[] key, byte[] value);
 
     /**
      * 读取数据
      * @param key
      * @return
      */
-    byte[] get(byte[] key);
+    Response get(byte[] key);
 }

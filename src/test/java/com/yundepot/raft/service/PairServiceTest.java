@@ -1,6 +1,6 @@
 package com.yundepot.raft.service;
 
-import com.yundepot.raft.RaftClient;
+import com.yundepot.raft.PeerClient;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -18,8 +18,8 @@ public class PairServiceTest {
 
     @Before
     public void before() {
-        RaftClient raftClient = new RaftClient("127.0.0.1", 2727);
-        pairService = raftClient.getRpcClient().create(PairService .class);
+        PeerClient peerClient = new PeerClient("127.0.0.1", 2727);
+//        pairService = peerClient.getRpcClient().create(PairService .class);
     }
 
 

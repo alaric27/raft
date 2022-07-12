@@ -1,7 +1,7 @@
 package com.yundepot.raft.service;
 
 import com.alibaba.fastjson.JSON;
-import com.yundepot.raft.RaftClient;
+import com.yundepot.raft.PeerClient;
 import com.yundepot.raft.bean.Response;
 import com.yundepot.raft.bean.Server;
 import org.junit.Before;
@@ -17,8 +17,8 @@ public class RaftAdminServiceTest {
 
     @Before
     public void before() {
-        RaftClient raftClient = new RaftClient("127.0.0.1", 2730);
-        raftAdminService = raftClient.getRpcClient().create(RaftAdminService .class);
+        PeerClient peerClient = new PeerClient("127.0.0.1", 2730);
+//        raftAdminService = peerClient.create(RaftAdminService .class);
     }
 
     @Test

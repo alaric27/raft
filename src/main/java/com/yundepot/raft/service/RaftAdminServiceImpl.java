@@ -43,6 +43,10 @@ public class RaftAdminServiceImpl implements RaftAdminService {
 
         raftNode.getLock().lock();
         try {
+            if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
+                return Response.fail(ResponseCode.NOT_LEADER.getValue(), raftNode.getLeaderId());
+            }
+
             if (raftNode.getPeerMap().containsKey(server.getServerId())) {
                 response.setMsg("already be added/adding to cluster");
                 return response;
@@ -61,7 +65,7 @@ public class RaftAdminServiceImpl implements RaftAdminService {
             // 等待新节点追赶上leader日志
             raftNode.getCatchUpCondition().awaitUninterruptibly();
             if (!peer.isCatchUp()) {
-                peer.getRaftClient().shutdown();
+                peer.getPeerClient().shutdown();
                 raftNode.getPeerMap().remove(peer.getServer().getServerId());
                 return response;
             }
@@ -74,7 +78,7 @@ public class RaftAdminServiceImpl implements RaftAdminService {
             boolean success = raftNode.replicate(bytes, LogType.CONFIG);
 
             if (!success) {
-                peer.getRaftClient().shutdown();
+                peer.getPeerClient().shutdown();
                 raftNode.getPeerMap().remove(peer.getServer().getServerId());
                 return response;
             }
@@ -91,6 +95,10 @@ public class RaftAdminServiceImpl implements RaftAdminService {
         response.setCode(ResponseCode.FAIL.getValue());
         raftNode.getLock().lock();
         try {
+            if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
+                return Response.fail(ResponseCode.NOT_LEADER.getValue(), raftNode.getLeaderId());
+            }
+
             if (!ClusterUtil.containsServer(raftNode.getCluster(), server.getServerId())) {
                 return response;
             }

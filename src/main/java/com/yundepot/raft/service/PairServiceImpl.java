@@ -1,11 +1,11 @@
 package com.yundepot.raft.service;
 
 import com.yundepot.raft.RaftNode;
+import com.yundepot.raft.bean.Response;
+import com.yundepot.raft.common.ResponseCode;
 import com.yundepot.raft.statemachine.StateMachine;
 import com.yundepot.raft.common.LogType;
-import com.yundepot.raft.bean.Pair;
 import com.yundepot.raft.util.ByteUtil;
-import com.yundepot.rpc.RpcClient;
 
 /**
  * @author zhaiyanan
@@ -22,25 +22,22 @@ public class PairServiceImpl implements PairService {
     }
 
     @Override
-    public void put(Pair pair) {
-        put(pair.getKey(), pair.getValue());
-    }
-
-    @Override
-    public void put(byte[] key, byte[] value) {
-        // 如果自己不是leader，将写请求转发给leader
+    public Response put(byte[] key, byte[] value) {
         if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
-            RpcClient rpcClient = raftNode.getPeerMap().get(raftNode.getLeaderId()).getRaftClient().getRpcClient();
-            rpcClient.create(PairService.class).put(key, value);
-        } else {
-            // 数据同步写入raft集群
-            byte[] data = ByteUtil.encode(key, value);
-            raftNode.replicate(data, LogType.DATA);
+            return Response.fail(ResponseCode.NOT_LEADER.getValue(), raftNode.getLeaderId());
         }
+
+        // 数据同步写入raft集群
+        byte[] data = ByteUtil.encode(key, value);
+        raftNode.replicate(data, LogType.DATA);
+        return Response.success();
     }
 
     @Override
-    public byte[] get(byte[] key) {
-        return stateMachine.get(key);
+    public Response get(byte[] key) {
+        if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
+            return Response.fail(ResponseCode.NOT_LEADER.getValue(), raftNode.getLeaderId());
+        }
+        return Response.success(stateMachine.get(key));
     }
 }

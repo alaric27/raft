@@ -1,6 +1,6 @@
 package com.yundepot.raft.bean;
 
-import com.yundepot.raft.RaftClient;
+import com.yundepot.raft.PeerClient;
 import lombok.Data;
 
 /**
@@ -12,7 +12,7 @@ import lombok.Data;
 public class Peer {
 
     private Server server;
-    private RaftClient raftClient;
+    private PeerClient peerClient;
 
     /**
      * 下一个要发的日志索引
@@ -41,7 +41,7 @@ public class Peer {
 
     public Peer(Server server) {
         this.server = server;
-        this.raftClient = new RaftClient(server.getHost(), server.getPort());
+        this.peerClient = new PeerClient(server.getHost(), server.getPort());
     }
 
 }

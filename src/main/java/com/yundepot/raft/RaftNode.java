@@ -91,7 +91,7 @@ public class RaftNode extends AbstractLifeCycle {
     /**
      * 主节点id
      */
-    private int leaderId;
+    private volatile int leaderId;
 
     /**
      * 被提交的最大日志条目的索引值
@@ -262,7 +262,7 @@ public class RaftNode extends AbstractLifeCycle {
         }
 
         log.info("requestVote request {}, to peer {}", request, peer.getServer().getServerId());
-        VoteResponse response = peer.getRaftClient().getRaftService().requestVote(request);
+        VoteResponse response = peer.getPeerClient().requestVote(request);
         log.info("requestVote response {}, from peer {}", response, peer.getServer().getServerId());
         voteResponse(peer, request, response);
     }
@@ -373,7 +373,7 @@ public class RaftNode extends AbstractLifeCycle {
 
         long start = System.currentTimeMillis();
         log.debug("appendLog request {} to {}", request, peer.getServer().getServerId());
-        AppendLogResponse response = peer.getRaftClient().getRaftService().appendLog(request);
+        AppendLogResponse response = peer.getPeerClient().appendLog(request);
         log.debug("appendLog response {} from {}, cost: {}", response, peer.getServer(), System.currentTimeMillis() - start);
         appendLogResponse(response, peer, packLastIndex);
     }
@@ -390,7 +390,7 @@ public class RaftNode extends AbstractLifeCycle {
                 // 如果不在集群中，说明添加peer失败了，直接删除即可
                 if (!ClusterUtil.containsServer(cluster, peer.getServer().getServerId())) {
                     peerMap.remove(peer.getServer().getServerId());
-                    peer.getRaftClient().shutdown();
+                    peer.getPeerClient().shutdown();
                 }
                 return;
             }
@@ -536,7 +536,7 @@ public class RaftNode extends AbstractLifeCycle {
             stateMachine.putConfig(cluster);
 
             stepDown(currentTerm);
-            peerMap.values().forEach(peer -> peer.getRaftClient().shutdown());
+            peerMap.values().forEach(peer -> peer.getPeerClient().shutdown());
             peerMap.clear();
             return;
         }
@@ -554,7 +554,7 @@ public class RaftNode extends AbstractLifeCycle {
         Set<Integer> toDelete = peerMap.keySet().stream().filter(serverId -> !ClusterUtil.containsServer(servers, serverId)).collect(Collectors.toSet());
         toDelete.forEach(serverId -> {
             Peer peer = peerMap.remove(serverId);
-            peer.getRaftClient().shutdown();
+            peer.getPeerClient().shutdown();
         });
 
         cluster.setServers(servers);
@@ -644,7 +644,7 @@ public class RaftNode extends AbstractLifeCycle {
                 }
 
                 log.info("install snapshot request: {} to {}", request, peer.getServer().getServerId());
-                InstallSnapshotResponse response = peer.getRaftClient().getRaftService().installSnapshot(request);
+                InstallSnapshotResponse response = peer.getPeerClient().installSnapshot(request);
                 log.info("install snapshot response : {} from {}", response, peer.getServer().getServerId());
                 if (response == null || response.getResCode() != ResponseCode.SUCCESS.getValue()) {
                     return;

@@ -13,15 +13,35 @@ import java.io.Serializable;
 public class Response<T> implements Serializable {
 
     public Response() {
-        this(ResponseCode.SUCCESS.getValue(), "成功");
+        this(ResponseCode.SUCCESS.getValue());
     }
 
-    public Response(int code, String msg) {
+    private Response(T data) {
+        this(ResponseCode.SUCCESS.getValue(), data);
+    }
+
+    public Response(int code) {
         this.code = code;
-        this.msg = msg;
+    }
+
+    public Response(int code, T data) {
+        this.code = code;
+        this.data = data;
     }
 
     private int code;
     private String msg;
     private T data;
+
+    public static <T> Response<T> success() {
+        return new Response();
+    }
+
+    public static <T> Response<T> success(T data) {
+        return new Response(data);
+    }
+
+    public static <T> Response<T> fail(Integer code, T data) {
+        return new Response(code, data);
+    }
 }
