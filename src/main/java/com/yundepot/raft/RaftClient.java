@@ -1,5 +1,6 @@
 package com.yundepot.raft;
 
+import com.yundepot.oaa.exception.ConnectionException;
 import com.yundepot.raft.bean.Cluster;
 import com.yundepot.raft.bean.Response;
 import com.yundepot.raft.bean.Server;
@@ -8,6 +9,9 @@ import com.yundepot.raft.service.PairService;
 import com.yundepot.raft.service.RaftAdminService;
 import com.yundepot.raft.util.ClusterUtil;
 import com.yundepot.rpc.RpcClient;
+
+import java.lang.reflect.UndeclaredThrowableException;
+import java.util.concurrent.Callable;
 
 /**
  * raft 对外客户端
@@ -36,14 +40,8 @@ public class RaftClient {
      * 写入数据
      */
     public void put(byte[] key, byte[] value) {
-        // todo 连接异常情况
-        Response response = null;
-        try {
-            response = pairService.put(key, value);
-            handleResponse(response);
-        } catch (Exception e) {
-            System.out.println();
-        }
+        Response response = execute(()-> pairService.put(key, value));
+        System.out.println(response.getCode());
     }
 
     /**
@@ -122,5 +120,24 @@ public class RaftClient {
         rpcClient.start();
         this.adminService = rpcClient.create(RaftAdminService.class);
         this.pairService = rpcClient.create(PairService.class);
+    }
+
+    private Response execute(Callable<Response> task){
+        // todo 待完善逻辑
+        Response response = null;
+        try {
+            response = task.call();
+            handleResponse(response);
+        } catch (Exception e) {
+            // 处理节点宕机情况
+            if (e instanceof UndeclaredThrowableException) {
+                UndeclaredThrowableException ex = (UndeclaredThrowableException) e;
+                Throwable undeclaredThrowable = ex.getUndeclaredThrowable();
+                if (undeclaredThrowable instanceof ConnectionException) {
+                    connect(cluster.getServers().stream().findAny().get());
+                }
+            }
+        }
+        return response;
     }
 }
