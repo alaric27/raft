@@ -25,6 +25,10 @@ public class PeerClient {
         this.rpcClient.shutdown();
     }
 
+    public VoteResponse preVote(VoteRequest request) {
+        return raftService.preVote(request);
+    }
+
     public VoteResponse vote(VoteRequest request) {
         return raftService.vote(request);
     }

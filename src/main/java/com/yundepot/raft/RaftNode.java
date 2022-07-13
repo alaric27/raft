@@ -153,7 +153,7 @@ public class RaftNode extends AbstractLifeCycle {
                                                     new LinkedBlockingQueue<>(), new NamedThreadFactory("raft", true));
         scheduledExecutorService = Executors.newScheduledThreadPool(2, new NamedThreadFactory("raftScheduled", true));
 
-        electionTimer = new ScheduledTimer("election", raftConfig.getElectionTimeout(), () -> startVote(), RandomUtil::getRangeLong);
+        electionTimer = new ScheduledTimer("election", raftConfig.getElectionTimeout(), () -> startPreVote(), RandomUtil::getRangeLong);
         heartbeatTimer = new ScheduledTimer("heartbeat", raftConfig.getHeartbeatPeriod(), () -> sendHeartbeat());
     }
 
@@ -226,6 +226,7 @@ public class RaftNode extends AbstractLifeCycle {
             state = RaftRole.PRE_CANDIDATE;
 
             List<Peer> peerList = peerMap.values().stream().filter(peer -> ClusterUtil.containsServer(cluster, peer.getServer().getServerId())).collect(Collectors.toList());
+            peerList.forEach(peer -> peer.setVoteGranted(false));
             peerList.forEach(peer -> scheduledExecutorService.execute(() -> preVote(peer)));
         } finally {
             lock.unlock();
@@ -246,24 +247,24 @@ public class RaftNode extends AbstractLifeCycle {
         }
 
         log.info("preVote request {}, to peer {}", request, peer.getServer().getServerId());
-        VoteResponse response = peer.getPeerClient().vote(request);
+        VoteResponse response = peer.getPeerClient().preVote(request);
         log.info("preVote response {}, from peer {}", response, peer.getServer().getServerId());
 
         lock.lock();
         try {
-            if (currentTerm != request.getTerm() || state != RaftRole.FOLLOWER) {
-                log.info("ignore requestVote response, request: {}, response: {}", request, response);
+            if (currentTerm != request.getTerm() || state != RaftRole.PRE_CANDIDATE) {
+                log.info("ignore preVote response, request: {}, response: {}", request, response);
                 return;
             }
             peer.setVoteGranted(response.isVoteGranted());
             if (response.getTerm() > currentTerm) {
                 stepDown(response.getTerm());
-            } else if (response.isVoteGranted()){
+            } else if (response.isVoteGranted()) {
                 // 统计票数
                 int voteGrantedNum = (int) peerMap.values().stream().filter(p -> p.isVoteGranted()).count() + 1;
-                log.info("getVoteGrantedNum={}", voteGrantedNum);
+                log.info("pre vote num ={}", voteGrantedNum);
                 if (voteGrantedNum > cluster.getServerList().size() / 2) {
-                    becomeLeader();
+                    startVote();
                 }
             }
         } finally {
@@ -283,11 +284,10 @@ public class RaftNode extends AbstractLifeCycle {
             votedFor = localServer.getServerId();
             stateStorage.update(currentTerm, votedFor);
 
-            // 开始一轮投票前，先清除投票数
-            peerMap.values().forEach(peer -> peer.setVoteGranted(false));
-
             // 过滤掉不在集群内的节点
             List<Peer> peerList = peerMap.values().stream().filter(peer -> ClusterUtil.containsServer(cluster, peer.getServer().getServerId())).collect(Collectors.toList());
+            // 开始一轮投票前，先清除投票数
+            peerList.forEach(peer -> peer.setVoteGranted(false));
             peerList.forEach(peer -> {
                 scheduledExecutorService.execute(() -> requestVote(peer));
             });
@@ -329,7 +329,7 @@ public class RaftNode extends AbstractLifeCycle {
         lock.lock();
         try {
             if (currentTerm != request.getTerm() || state != RaftRole.CANDIDATE) {
-                log.info("ignore requestVote response, request: {}, response: {}", request, response);
+                log.info("ignore vote response, request: {}, response: {}", request, response);
                 return;
             }
             peer.setVoteGranted(response.isVoteGranted());

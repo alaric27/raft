@@ -20,9 +20,34 @@ public class RaftServiceImpl implements RaftService{
 
     @Override
     public VoteResponse preVote(VoteRequest request) {
+        raftNode.getLock().lock();
+        try {
+            VoteResponse voteResponse = VoteResponse.builder().voteGranted(false)
+                    .term(raftNode.getCurrentTerm()).build();
 
+            if (!ClusterUtil.containsServer(raftNode.getCluster(), request.getCandidateId())) {
+                return voteResponse;
+            }
+            //如果term < currentTerm返回 false
+            if (request.getTerm() < raftNode.getCurrentTerm()) {
+                return voteResponse;
+            }
 
-        return null;
+            // 更新自己的term
+            if (request.getTerm() > raftNode.getCurrentTerm()) {
+                raftNode.stepDown(request.getTerm());
+            }
+
+            // 如果 votedFor 为空或者为 candidateId，并且候选人的日志至少和自己一样新，那么就投票给他
+            boolean votedForFlag = raftNode.getVotedFor() == 0 || raftNode.getVotedFor() == request.getCandidateId();
+            if (votedForFlag && isNewer(request)) {
+                voteResponse.setVoteGranted(true);
+                voteResponse.setTerm(raftNode.getCurrentTerm());
+            }
+            return voteResponse;
+        } finally {
+            raftNode.getLock().unlock();
+        }
     }
 
     @Override
