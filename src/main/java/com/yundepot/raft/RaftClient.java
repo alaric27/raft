@@ -5,6 +5,7 @@ import com.yundepot.raft.bean.Cluster;
 import com.yundepot.raft.bean.Response;
 import com.yundepot.raft.bean.Server;
 import com.yundepot.raft.common.ResponseCode;
+import com.yundepot.raft.exception.RaftException;
 import com.yundepot.raft.service.PairService;
 import com.yundepot.raft.service.RaftAdminService;
 import com.yundepot.raft.util.ClusterUtil;
@@ -40,8 +41,7 @@ public class RaftClient {
      * 写入数据
      */
     public void put(byte[] key, byte[] value) {
-        Response response = execute(()-> pairService.put(key, value));
-        System.out.println(response.getCode());
+        execute(()-> pairService.put(key, value));
     }
 
     /**
@@ -50,8 +50,7 @@ public class RaftClient {
      * @return
      */
     public byte[] get(byte[] key) {
-        Response response = pairService.get(key);
-        handleResponse(response);
+        Response response = execute(()-> pairService.get(key));
         return (byte[]) response.getData();
     }
 
@@ -77,9 +76,7 @@ public class RaftClient {
      * @return
      */
     public Response addPeer(Server server) {
-        Response response = adminService.addPeer(server);
-        handleResponse(response);
-        return response;
+        return execute(() -> adminService.addPeer(server));
     }
 
     /**
@@ -88,10 +85,7 @@ public class RaftClient {
      * @return
      */
     public Response removePeer(Server server) {
-        Response response = adminService.removePeer(server);
-        // todo 重试
-        handleResponse(response);
-        return response;
+        return execute(() -> adminService.removePeer(server));
     }
 
     /**
@@ -100,14 +94,6 @@ public class RaftClient {
      */
     public long getCommitIndex() {
         return adminService.getCommitIndex();
-    }
-
-    private void handleResponse(Response response) {
-        // 重定向到leader节点
-        if (ResponseCode.NOT_LEADER.getValue() == response.getCode()) {
-            Server server = (Server) response.getData();
-            connect(server);
-        }
     }
 
     private void connect(Server leader) {
@@ -122,21 +108,36 @@ public class RaftClient {
         this.pairService = rpcClient.create(PairService.class);
     }
 
-    private Response execute(Callable<Response> task){
-        // todo 待完善逻辑
+    private Response execute(Callable<Response> task) {
+        return execute(task, 0);
+    }
+
+    private Response execute(Callable<Response> task, int count){
+        // 限制重试次数
+        if (count > cluster.getServers().size()) {
+            return Response.fail(ResponseCode.FAIL.getValue());
+        }
+
         Response response = null;
         try {
             response = task.call();
-            handleResponse(response);
-        } catch (Exception e) {
-            // 处理节点宕机情况
+            // 重定向到leader节点
+            if (ResponseCode.NOT_LEADER.getValue() == response.getCode()) {
+                Server server = (Server) response.getData();
+                connect(server);
+                return execute(task, count + 1);
+            }
+        } catch (Throwable e) {
+            // 处理节点宕机情况, 重试其他节点
             if (e instanceof UndeclaredThrowableException) {
                 UndeclaredThrowableException ex = (UndeclaredThrowableException) e;
                 Throwable undeclaredThrowable = ex.getUndeclaredThrowable();
                 if (undeclaredThrowable instanceof ConnectionException) {
                     connect(cluster.getServers().stream().findAny().get());
+                    return execute(task, count + 1);
                 }
             }
+            throw new RaftException("execute call remote error", e);
         }
         return response;
     }

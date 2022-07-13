@@ -44,4 +44,8 @@ public class Response<T> implements Serializable {
     public static <T> Response<T> fail(Integer code, T data) {
         return new Response(code, data);
     }
+
+    public static <T> Response<T> fail(Integer code) {
+        return new Response(code);
+    }
 }
