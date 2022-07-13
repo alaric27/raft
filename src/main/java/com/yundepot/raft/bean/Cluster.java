@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
-import java.util.Set;
+import java.util.List;
 
 /**
  * @author zhaiyanan
@@ -15,5 +15,5 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Cluster implements Serializable {
-    private Set<Server> servers;
+    private List<Server> serverList;
 }

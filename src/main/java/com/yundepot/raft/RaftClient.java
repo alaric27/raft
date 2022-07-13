@@ -33,7 +33,7 @@ public class RaftClient {
 
     public RaftClient(Cluster cluster) {
         this.cluster = cluster;
-        this.leader = cluster.getServers().stream().findAny().get();
+        this.leader = cluster.getServerList().get(0);
         connect(leader);
     }
 
@@ -114,7 +114,7 @@ public class RaftClient {
 
     private Response execute(Callable<Response> task, int count){
         // 限制重试次数
-        if (count > cluster.getServers().size()) {
+        if (count > cluster.getServerList().size()) {
             return Response.fail(ResponseCode.FAIL.getValue());
         }
 
@@ -133,7 +133,8 @@ public class RaftClient {
                 UndeclaredThrowableException ex = (UndeclaredThrowableException) e;
                 Throwable undeclaredThrowable = ex.getUndeclaredThrowable();
                 if (undeclaredThrowable instanceof ConnectionException) {
-                    connect(cluster.getServers().stream().findAny().get());
+                    // 优化节点选择
+                    connect(cluster.getServerList().get(count + 1));
                     return execute(task, count + 1);
                 }
             }

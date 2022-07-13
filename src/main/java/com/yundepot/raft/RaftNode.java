@@ -139,7 +139,7 @@ public class RaftNode extends AbstractLifeCycle {
         load();
 
         // 初始化集群节点
-        cluster.getServers().forEach(server -> {
+        cluster.getServerList().forEach(server -> {
             if (!peerMap.containsKey(server.getServerId()) && server.getServerId() != localServer.getServerId()) {
                 Peer peer = new Peer(server);
                 peer.setNextIndex(getLastLogIndex() + 1);
@@ -226,7 +226,7 @@ public class RaftNode extends AbstractLifeCycle {
             stateStorage.update(currentTerm, votedFor);
 
             // 如果只有一个节点, 直接成为领导者
-            if (cluster.getServers().size() == 1) {
+            if (cluster.getServerList().size() == 1) {
                 becomeLeader();
                 return;
             }
@@ -287,7 +287,7 @@ public class RaftNode extends AbstractLifeCycle {
                 // 统计票数
                 int voteGrantedNum = (int) peerMap.values().stream().filter(p -> p.isVoteGranted()).count() + 1;
                 log.info("getVoteGrantedNum={}", voteGrantedNum);
-                if (voteGrantedNum > cluster.getServers().size() / 2) {
+                if (voteGrantedNum > cluster.getServerList().size() / 2) {
                     becomeLeader();
                 }
             }
@@ -479,7 +479,7 @@ public class RaftNode extends AbstractLifeCycle {
      * leader更新提交数据, 在锁中
      */
     private void advanceCommitIndex() {
-        int peerNum = cluster.getServers().size();
+        int peerNum = cluster.getServerList().size();
         List<Long> list = new ArrayList<>();
         peerMap.values().forEach(peer -> list.add(peer.getMatchIndex()));
         list.add(logStore.getLastLogIndex());
@@ -527,12 +527,12 @@ public class RaftNode extends AbstractLifeCycle {
      * @param entry
      */
     public void applyConfig(LogEntry entry) {
-        final Set<Server> servers = JSON.parseObject(entry.getData(), new TypeReference<Set<Server>>(){}.getType());
+        final List<Server> serverList = JSON.parseObject(entry.getData(), new TypeReference<List<Server>>(){}.getType());
         // 如果新集群已经不包含该节点
-        if (!ClusterUtil.containsServer(servers, localServer.getServerId())) {
+        if (!ClusterUtil.containsServer(serverList, localServer.getServerId())) {
             Set<Server> newServers = new HashSet<>();
             newServers.add(localServer);
-            cluster.setServers(newServers);
+            cluster.setServerList(serverList);
             stateMachine.putConfig(cluster);
 
             stepDown(currentTerm);
@@ -542,7 +542,7 @@ public class RaftNode extends AbstractLifeCycle {
         }
 
         // 添加新节点
-        for (Server server : servers) {
+        for (Server server : serverList) {
             if (!peerMap.containsKey(server.getServerId()) && server.getServerId() != localServer.getServerId()) {
                 Peer peer = new Peer(server);
                 peer.setNextIndex(logStore.getLastLogIndex() + 1);
@@ -551,13 +551,13 @@ public class RaftNode extends AbstractLifeCycle {
         }
 
         // 删除不在集群内的节点
-        Set<Integer> toDelete = peerMap.keySet().stream().filter(serverId -> !ClusterUtil.containsServer(servers, serverId)).collect(Collectors.toSet());
+        Set<Integer> toDelete = peerMap.keySet().stream().filter(serverId -> !ClusterUtil.containsServer(serverList, serverId)).collect(Collectors.toSet());
         toDelete.forEach(serverId -> {
             Peer peer = peerMap.remove(serverId);
             peer.getPeerClient().shutdown();
         });
 
-        cluster.setServers(servers);
+        cluster.setServerList(serverList);
         stateMachine.putConfig(cluster);
     }
 
@@ -752,7 +752,7 @@ public class RaftNode extends AbstractLifeCycle {
             logStore.append(entries);
 
             // 只有一个节点
-            if (cluster.getServers().size() == 1) {
+            if (cluster.getServerList().size() == 1) {
                 applyLogEntry(logEntry);
                 lastAppliedIndex = logEntry.getIndex();
                 commitIndex = lastAppliedIndex;

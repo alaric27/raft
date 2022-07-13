@@ -11,7 +11,9 @@ import com.yundepot.raft.common.ResponseCode;
 import com.yundepot.raft.util.ClusterUtil;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -70,10 +72,10 @@ public class RaftAdminServiceImpl implements RaftAdminService {
                 return response;
             }
 
-            Set<Server> newServerSet = new HashSet<>();
-            newServerSet.add(server);
-            newServerSet.addAll(raftNode.getCluster().getServers());
-            byte[] bytes = JSON.toJSONBytes(newServerSet);
+            List<Server> newServerList = new ArrayList<>();
+            newServerList.add(server);
+            newServerList.addAll(raftNode.getCluster().getServerList());
+            byte[] bytes = JSON.toJSONBytes(newServerList);
             // 复制集群变更到其他节点
             boolean success = raftNode.replicate(bytes, LogType.CONFIG);
 
@@ -108,8 +110,8 @@ public class RaftAdminServiceImpl implements RaftAdminService {
                 return response;
             }
 
-            Set<Server> newServerSet = ClusterUtil.removeServer(raftNode.getCluster().getServers(), server.getServerId());
-            byte[] bytes = JSON.toJSONBytes(newServerSet);
+            List<Server> newServerList = ClusterUtil.removeServer(raftNode.getCluster().getServerList(), server.getServerId());
+            byte[] bytes = JSON.toJSONBytes(newServerList);
             boolean success = raftNode.replicate(bytes, LogType.CONFIG);
             if (success) {
                 response.setCode(ResponseCode.SUCCESS.getValue());

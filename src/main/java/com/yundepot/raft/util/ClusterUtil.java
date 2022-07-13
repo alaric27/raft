@@ -4,8 +4,8 @@ package com.yundepot.raft.util;
 import com.yundepot.raft.bean.Cluster;
 import com.yundepot.raft.bean.Server;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author zhaiyanan
@@ -20,11 +20,11 @@ public class ClusterUtil {
      * @return
      */
     public static boolean containsServer(Cluster cluster, int serverId) {
-        return containsServer(cluster.getServers(), serverId);
+        return containsServer(cluster.getServerList(), serverId);
     }
 
-    public static boolean containsServer(Set<Server> servers, int serverId) {
-        for (Server server : servers) {
+    public static boolean containsServer(List<Server> serverList, int serverId) {
+        for (Server server : serverList) {
             if (server.getServerId() == serverId) {
                 return true;
             }
@@ -32,14 +32,14 @@ public class ClusterUtil {
         return false;
     }
 
-    public static Set<Server> removeServer(Set<Server> servers, int serverId) {
-        Set<Server> newSet = new HashSet<>();
-        for (Server server : servers) {
+    public static List<Server> removeServer(List<Server> serverList, int serverId) {
+        List<Server> list = new ArrayList<>();
+        for (Server server : serverList) {
             if (serverId != server.getServerId()) {
-                newSet.add(server);
+                list.add(server);
             }
         }
-        return newSet;
+        return list;
     }
 
     /**
@@ -49,11 +49,11 @@ public class ClusterUtil {
      * @return
      */
     public static Server getServer(Cluster cluster, int serverId) {
-        return getServer(cluster.getServers(), serverId);
+        return getServer(cluster.getServerList(), serverId);
     }
 
-    public static Server getServer(Set<Server> servers, int serverId) {
-        for (Server server : servers) {
+    public static Server getServer(List<Server> serverList, int serverId) {
+        for (Server server : serverList) {
             if (server.getServerId() == serverId) {
                 return server;
             }
@@ -67,13 +67,13 @@ public class ClusterUtil {
      * @return
      */
     public static Cluster parserCluster(String clusterInfo) {
-        Set<Server> servers = new HashSet<>();
+        List<Server> serverList = new ArrayList<>();
         String[] splitArray = clusterInfo.split(",");
         for (String serverString : splitArray) {
-            servers.add(parserServer(serverString));
+            serverList.add(parserServer(serverString));
         }
         Cluster cluster = new Cluster();
-        cluster.setServers(servers);
+        cluster.setServerList(serverList);
         return cluster;
     }
 
