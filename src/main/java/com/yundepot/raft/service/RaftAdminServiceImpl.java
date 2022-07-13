@@ -12,9 +12,7 @@ import com.yundepot.raft.util.ClusterUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author zhaiyanan
@@ -46,7 +44,7 @@ public class RaftAdminServiceImpl implements RaftAdminService {
         raftNode.getLock().lock();
         try {
             if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
-                return Response.fail(ResponseCode.NOT_LEADER.getValue(), raftNode.getLeaderId());
+                return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getCluster(), raftNode.getLeaderId()));
             }
 
             if (raftNode.getPeerMap().containsKey(server.getServerId())) {
@@ -98,7 +96,7 @@ public class RaftAdminServiceImpl implements RaftAdminService {
         raftNode.getLock().lock();
         try {
             if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
-                return Response.fail(ResponseCode.NOT_LEADER.getValue(), raftNode.getLeaderId());
+                return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getCluster(), raftNode.getLeaderId()));
             }
 
             if (!ClusterUtil.containsServer(raftNode.getCluster(), server.getServerId())) {

@@ -6,6 +6,7 @@ import com.yundepot.raft.common.ResponseCode;
 import com.yundepot.raft.statemachine.StateMachine;
 import com.yundepot.raft.common.LogType;
 import com.yundepot.raft.util.ByteUtil;
+import com.yundepot.raft.util.ClusterUtil;
 
 /**
  * @author zhaiyanan
@@ -24,7 +25,7 @@ public class PairServiceImpl implements PairService {
     @Override
     public Response put(byte[] key, byte[] value) {
         if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
-            return Response.fail(ResponseCode.NOT_LEADER.getValue(), raftNode.getLeaderId());
+            return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getCluster(), raftNode.getLeaderId()));
         }
 
         // 数据同步写入raft集群
@@ -36,7 +37,7 @@ public class PairServiceImpl implements PairService {
     @Override
     public Response get(byte[] key) {
         if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
-            return Response.fail(ResponseCode.NOT_LEADER.getValue(), raftNode.getLeaderId());
+            return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getCluster(), raftNode.getLeaderId()));
         }
         return Response.success(stateMachine.get(key));
     }
