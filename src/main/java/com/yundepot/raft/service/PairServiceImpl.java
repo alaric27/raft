@@ -2,6 +2,7 @@ package com.yundepot.raft.service;
 
 import com.yundepot.raft.RaftNode;
 import com.yundepot.raft.bean.Response;
+import com.yundepot.raft.common.ConsistencyLevel;
 import com.yundepot.raft.common.ResponseCode;
 import com.yundepot.raft.statemachine.StateMachine;
 import com.yundepot.raft.common.LogType;
@@ -36,8 +37,22 @@ public class PairServiceImpl implements PairService {
 
     @Override
     public Response get(byte[] key) {
-        if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
-            return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getCluster(), raftNode.getLeaderId()));
+        if (ConsistencyLevel.LINE.getValue() == raftNode.getRaftConfig().getConsistencyLevel()) {
+            // 线性一致性不允许读follower
+            if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
+                return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getCluster(), raftNode.getLeaderId()));
+            }
+            raftNode.getLock().unlock();
+            try {
+                long readIndex = raftNode.getCommitIndex();
+                // todo 处理有问题
+                raftNode.sendHeartbeat();
+                if (!raftNode.awaitCommit(readIndex)) {
+                    return Response.fail(ResponseCode.FAIL.getValue());
+                }
+            } finally {
+                raftNode.getLock().unlock();
+            }
         }
         return Response.success(stateMachine.get(key));
     }

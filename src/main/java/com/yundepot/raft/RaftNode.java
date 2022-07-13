@@ -153,7 +153,7 @@ public class RaftNode extends AbstractLifeCycle {
         scheduledExecutorService = Executors.newScheduledThreadPool(2, new NamedThreadFactory("raftScheduled", true));
 
         electionTimer = new ScheduledTimer("election", raftConfig.getElectionTimeout(), () -> startVote(), RandomUtil::getRangeLong);
-        heartbeatTimer = new ScheduledTimer("heartbeat", raftConfig.getHeartbeatPeriod(), () -> startHeartbeat());
+        heartbeatTimer = new ScheduledTimer("heartbeat", raftConfig.getHeartbeatPeriod(), () -> sendHeartbeat());
     }
 
     /**
@@ -334,9 +334,9 @@ public class RaftNode extends AbstractLifeCycle {
     }
 
     /**
-     * 开始心跳
+     * 发送心跳
      */
-    private void startHeartbeat() {
+    public void sendHeartbeat() {
         peerMap.values().forEach(peer -> executorService.submit(() -> appendLog(peer)));
     }
 
@@ -765,31 +765,36 @@ public class RaftNode extends AbstractLifeCycle {
             }
 
             // 等待日志同步
-            await(newLastLogIndex);
+            return awaitCommit(newLastLogIndex);
         } catch (Exception ex) {
             log.error("replicate error", ex);
             return false;
         } finally {
             lock.unlock();
         }
-
-        log.debug("lastAppliedIndex={} newLastLogIndex={}", lastAppliedIndex, newLastLogIndex);
-        if (lastAppliedIndex < newLastLogIndex) {
-            return false;
-        }
-        return true;
     }
 
     /**
      * 等待日志提交到index索引处
      * @param index
      */
-    private void await(long index) {
-        try {
-            commitIndexCondition.await(raftConfig.getMaxAwaitTimeout(), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            log.warn("await index {} interrupted", index, e);
+    public boolean awaitCommit(long index) {
+        long start = System.currentTimeMillis();
+        while (lastAppliedIndex < index) {
+            try {
+                if (System.currentTimeMillis() - start >= raftConfig.getMaxAwaitTimeout()) {
+                    break;
+                }
+                commitIndexCondition.await(raftConfig.getMaxAwaitTimeout(), TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                log.warn("await index {} interrupted", index, e);
+            }
         }
+
+        if (lastAppliedIndex < index) {
+            return false;
+        }
+        return true;
     }
 
     /**

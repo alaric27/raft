@@ -84,4 +84,9 @@ public class RaftConfig {
      * 每次快照删除日志时，最少保留的条数，防止频繁发送快照
      */
     private long keepLogNum = 1024;
+
+    /**
+     * 读取时一致性级别, 默认最终一致性
+     */
+    private int consistencyLevel = 0;
 }
