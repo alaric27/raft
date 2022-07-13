@@ -37,6 +37,7 @@ public class PairServiceImpl implements PairService {
 
     @Override
     public Response get(byte[] key) {
+        // 线性一致性读
         if (ConsistencyLevel.LINE.getValue() == raftNode.getRaftConfig().getConsistencyLevel()) {
             // 线性一致性不允许读follower
             if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
@@ -45,8 +46,14 @@ public class PairServiceImpl implements PairService {
             raftNode.getLock().unlock();
             try {
                 long readIndex = raftNode.getCommitIndex();
-                // todo 处理有问题
+                // 发送心跳等待确认当前节点是否依然为leader
                 raftNode.sendHeartbeat();
+                raftNode.getPeerMap().values().forEach(peer -> peer.setLastResponseStatus(false));
+                if (!raftNode.awaitAppend()) {
+                    return Response.fail(ResponseCode.FAIL.getValue());
+                }
+
+                // 等待节点日志应用到readIndex
                 if (!raftNode.awaitCommit(readIndex)) {
                     return Response.fail(ResponseCode.FAIL.getValue());
                 }

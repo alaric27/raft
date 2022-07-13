@@ -106,6 +106,7 @@ public class RaftNode extends AbstractLifeCycle {
     private Lock lock = new ReentrantLock();
     private Condition commitIndexCondition = lock.newCondition();
     private Condition catchUpCondition = lock.newCondition();
+    private Condition appendCondition = lock.newCondition();
 
     /**
      * 追加日志的线程池
@@ -403,6 +404,9 @@ public class RaftNode extends AbstractLifeCycle {
             if (response.isSuccess()) {
                 peer.setMatchIndex(packLastIndex);
                 peer.setNextIndex(peer.getMatchIndex() + 1);
+                peer.setLastResponseStatus(true);
+                peer.setLastResponseTime(System.currentTimeMillis());
+                appendCondition.signalAll();
                 if (ClusterUtil.containsServer(cluster, peer.getServer().getServerId())) {
                     advanceCommitIndex();
                 } else {
@@ -796,6 +800,31 @@ public class RaftNode extends AbstractLifeCycle {
         }
         return true;
     }
+
+    /**
+     * 等待集群过半响应
+     * @return
+     */
+    public boolean awaitAppend() {
+        int quorum = (cluster.getServerList().size() + 1 ) / 2;
+        long start = System.currentTimeMillis();
+        while (peerMap.values().stream().filter(p -> p.isLastResponseStatus()).count() + 1 < quorum) {
+            try {
+                if (System.currentTimeMillis() - start >= raftConfig.getMaxAwaitTimeout()) {
+                    break;
+                }
+                appendCondition.await(raftConfig.getMaxAwaitTimeout(), TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                log.warn("await append interrupted", e);
+            }
+        }
+
+        if (peerMap.values().stream().filter(p -> p.isLastResponseStatus()).count() + 1 < quorum) {
+            return false;
+        }
+        return true;
+    }
+
 
     /**
      * follower 接收来自leader的日志, 在锁中

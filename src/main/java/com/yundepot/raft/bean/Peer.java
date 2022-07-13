@@ -39,6 +39,16 @@ public class Peer {
      */
     private volatile boolean installingSnapshot;
 
+    /**
+     * 最后一次响应是否正常，用于leader判读当前是否依然能和大多数节点通信
+     */
+    private volatile boolean lastResponseStatus;
+
+    /**
+     * 最后一次成功响应时间, 用于判断该节点是否存活, 依赖系统时钟
+     */
+    private long lastResponseTime;
+
     public Peer(Server server) {
         this.server = server;
         this.peerClient = new PeerClient(server.getHost(), server.getPort());
