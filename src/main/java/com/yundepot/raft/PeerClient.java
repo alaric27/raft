@@ -25,8 +25,8 @@ public class PeerClient {
         this.rpcClient.shutdown();
     }
 
-    public VoteResponse requestVote(VoteRequest request) {
-        return raftService.requestVote(request);
+    public VoteResponse vote(VoteRequest request) {
+        return raftService.vote(request);
     }
 
     public AppendLogResponse appendLog(AppendLogRequest request) {

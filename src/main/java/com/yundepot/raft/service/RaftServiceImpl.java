@@ -19,7 +19,14 @@ public class RaftServiceImpl implements RaftService{
     }
 
     @Override
-    public VoteResponse requestVote(VoteRequest request) {
+    public VoteResponse preVote(VoteRequest request) {
+
+
+        return null;
+    }
+
+    @Override
+    public VoteResponse vote(VoteRequest request) {
         raftNode.getLock().lock();
         try {
             VoteResponse voteResponse = VoteResponse.builder().voteGranted(false)

@@ -11,6 +11,11 @@ public enum RaftRole {
     FOLLOWER,
 
     /**
+     * 预候选人
+     */
+    PRE_CANDIDATE,
+
+    /**
      * 候选人
      */
     CANDIDATE,

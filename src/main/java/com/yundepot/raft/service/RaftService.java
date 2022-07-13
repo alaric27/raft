@@ -9,12 +9,14 @@ import com.yundepot.raft.bean.*;
  */
 public interface RaftService {
 
+    VoteResponse preVote(VoteRequest request);
+
     /**
      * 投票
      * @param request
      * @return
      */
-    VoteResponse requestVote(VoteRequest request);
+    VoteResponse vote(VoteRequest request);
 
     /**
      * 追加日志
