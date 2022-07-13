@@ -2,6 +2,7 @@ package com.yundepot.raft.service;
 
 import com.yundepot.raft.RaftNode;
 import com.yundepot.raft.bean.*;
+import com.yundepot.raft.common.Constant;
 import com.yundepot.raft.common.ResponseCode;
 import com.yundepot.raft.util.ClusterUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -22,28 +23,20 @@ public class RaftServiceImpl implements RaftService{
     public VoteResponse preVote(VoteRequest request) {
         raftNode.getLock().lock();
         try {
-            VoteResponse voteResponse = VoteResponse.builder().voteGranted(false)
-                    .term(raftNode.getCurrentTerm()).build();
-
+            VoteResponse voteResponse = VoteResponse.builder().voteGranted(false).term(raftNode.getCurrentTerm()).build();
+            // 如果请求节点不属于当前集群，则不给其投票
             if (!ClusterUtil.containsServer(raftNode.getCluster(), request.getCandidateId())) {
                 return voteResponse;
             }
-            //如果term < currentTerm返回 false
+            // 如果请求的term 小于当前节点的term，则不给其投票
             if (request.getTerm() < raftNode.getCurrentTerm()) {
                 return voteResponse;
             }
-
-            // 更新自己的term
-            if (request.getTerm() > raftNode.getCurrentTerm()) {
-                raftNode.stepDown(request.getTerm());
+            // 如果比当前节点的日志落后，则不给其投票
+            if (!isNewer(request)) {
+                return voteResponse;
             }
-
-            // 如果 votedFor 为空或者为 candidateId，并且候选人的日志至少和自己一样新，那么就投票给他
-            boolean votedForFlag = raftNode.getVotedFor() == 0 || raftNode.getVotedFor() == request.getCandidateId();
-            if (votedForFlag && isNewer(request)) {
-                voteResponse.setVoteGranted(true);
-                voteResponse.setTerm(raftNode.getCurrentTerm());
-            }
+            voteResponse.setVoteGranted(true);
             return voteResponse;
         } finally {
             raftNode.getLock().unlock();
@@ -54,13 +47,11 @@ public class RaftServiceImpl implements RaftService{
     public VoteResponse vote(VoteRequest request) {
         raftNode.getLock().lock();
         try {
-            VoteResponse voteResponse = VoteResponse.builder().voteGranted(false)
-                    .term(raftNode.getCurrentTerm()).build();
-
+            VoteResponse voteResponse = VoteResponse.builder().voteGranted(false).term(raftNode.getCurrentTerm()).build();
             if (!ClusterUtil.containsServer(raftNode.getCluster(), request.getCandidateId())) {
                 return voteResponse;
             }
-            //如果term < currentTerm返回 false
+            // 如果请求的term 小于当前节点的term，则不给其投票
             if (request.getTerm() < raftNode.getCurrentTerm()) {
                 return voteResponse;
             }
