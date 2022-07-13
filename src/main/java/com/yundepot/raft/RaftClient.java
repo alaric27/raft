@@ -112,6 +112,12 @@ public class RaftClient {
         return execute(task, 0);
     }
 
+    /**
+     * 执行客户端请求，智能路由到leader节点
+     * @param task
+     * @param count
+     * @return
+     */
     private Response execute(Callable<Response> task, int count){
         // 限制重试次数
         if (count > cluster.getServerList().size()) {
