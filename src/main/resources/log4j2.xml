@@ -7,7 +7,7 @@
             <PatternLayout pattern="%d %p [%t]\t%m%n" />
         </Console>
 
-        <RollingFile name="RollingFile" fileName="/Users/zyn/Desktop/candelete/raft/raft.log" immediateFlush="true"
+        <RollingFile name="RollingFile" fileName="/Users/zyn/Desktop/candelete/raft/raft.log" immediateFlush="false"
                      filePattern="/Users/zyn/Desktop/candelete/raft/raft.log.%d{yyyy-MM-dd}" append="true">
             <PatternLayout>
                 <Pattern>%d %p [%t]\t%m%n</Pattern>
