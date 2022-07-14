@@ -35,7 +35,8 @@ public class RaftClientTest {
 
     @Test
     public void get() {
-        System.out.println(raftClient.get("aaa30020".getBytes(StandardCharsets.UTF_8)));
+        byte[] bytes = raftClient.get("aaa320".getBytes(StandardCharsets.UTF_8));
+        System.out.println(new String(bytes));
     }
 
     @Test
