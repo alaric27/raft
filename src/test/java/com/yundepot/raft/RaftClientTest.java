@@ -65,7 +65,8 @@ public class RaftClientTest {
         server.setServerId(4);
         server.setHost("127.0.0.1");
         server.setPort(2730);
-        raftClient.removePeer(server);
+        Response response = raftClient.removePeer(server);
+        System.out.println(JSON.toJSONString(response));
     }
 
     @Test
