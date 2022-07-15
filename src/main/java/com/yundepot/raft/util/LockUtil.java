@@ -11,7 +11,7 @@ import java.util.concurrent.locks.Lock;
  */
 public class LockUtil {
 
-    public void runWithLock(Lock lock, Runnable task) {
+    public static void runWithLock(Lock lock, Runnable task) {
         lock.lock();
         try {
             task.run();
@@ -20,7 +20,7 @@ public class LockUtil {
         }
     }
 
-    public <T> T getWithLock(Lock lock, Callable<T> task) {
+    public static <T> T getWithLock(Lock lock, Callable<T> task) {
         lock.lock();
         try {
             return task.call();

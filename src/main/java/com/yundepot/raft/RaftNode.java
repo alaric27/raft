@@ -17,6 +17,7 @@ import com.yundepot.raft.store.NodeStateStore;
 import com.yundepot.raft.store.RocksDBLogStore;
 import com.yundepot.raft.util.ByteUtil;
 import com.yundepot.raft.util.ClusterUtil;
+import com.yundepot.raft.util.LockUtil;
 import com.yundepot.raft.util.RandomUtil;
 import com.yundepot.rpc.RpcServer;
 import lombok.Data;
@@ -215,8 +216,7 @@ public class RaftNode extends AbstractLifeCycle {
     }
 
     private void startPreVote() {
-        lock.lock();
-        try {
+        LockUtil.runWithLock(lock, () -> {
             // 如果只有一个节点, 直接成为领导者
             if (cluster.getServerList().size() == 1) {
                 becomeLeader();
@@ -228,30 +228,24 @@ public class RaftNode extends AbstractLifeCycle {
             List<Peer> peerList = peerMap.values().stream().filter(peer -> ClusterUtil.containsServer(cluster, peer.getServer().getServerId())).collect(Collectors.toList());
             peerList.forEach(peer -> peer.setVoteGranted(false));
             peerList.forEach(peer -> scheduledExecutorService.execute(() -> preVote(peer)));
-        } finally {
-            lock.unlock();
-        }
+        });
     }
 
     private void preVote(Peer peer) {
         VoteRequest request = new VoteRequest();
-        lock.lock();
-        try {
+        LockUtil.runWithLock(lock, () -> {
             peer.setVoteGranted(false);
             request.setCandidateId(localServer.getServerId());
             request.setTerm(currentTerm);
             request.setLastLogTerm(getLastLogTerm());
             request.setLastLogIndex(logStore.getLastLogIndex());
-        } finally {
-            lock.unlock();
-        }
+        });
 
         log.info("preVote request {}, to peer {}", request, peer.getServer().getServerId());
         VoteResponse response = peer.getPeerClient().preVote(request);
         log.info("preVote response {}, from peer {}", response, peer.getServer().getServerId());
 
-        lock.lock();
-        try {
+        LockUtil.runWithLock(lock, () -> {
             if (currentTerm != request.getTerm() || state != RaftRole.PRE_CANDIDATE) {
                 log.info("ignore preVote response, request: {}, response: {}", request, response);
                 return;
@@ -267,17 +261,14 @@ public class RaftNode extends AbstractLifeCycle {
                     startVote();
                 }
             }
-        } finally {
-            lock.unlock();
-        }
+        });
     }
 
     /**
      * 开始投票
      */
     private void startVote() {
-        lock.lock();
-        try {
+        LockUtil.runWithLock(lock, () -> {
             currentTerm++;
             log.info("Running for election in term {}", currentTerm);
             state = RaftRole.CANDIDATE;
@@ -288,12 +279,8 @@ public class RaftNode extends AbstractLifeCycle {
             List<Peer> peerList = peerMap.values().stream().filter(peer -> ClusterUtil.containsServer(cluster, peer.getServer().getServerId())).collect(Collectors.toList());
             // 开始一轮投票前，先清除投票数
             peerList.forEach(peer -> peer.setVoteGranted(false));
-            peerList.forEach(peer -> {
-                scheduledExecutorService.execute(() -> requestVote(peer));
-            });
-        } finally {
-            lock.unlock();
-        }
+            peerList.forEach(peer -> scheduledExecutorService.execute(() -> requestVote(peer)));
+        });
     }
 
     /**
@@ -302,32 +289,20 @@ public class RaftNode extends AbstractLifeCycle {
      */
     private void requestVote(Peer peer) {
         VoteRequest request = new VoteRequest();
-        lock.lock();
-        try {
+        LockUtil.runWithLock(lock, () -> {
             peer.setVoteGranted(false);
             request.setCandidateId(localServer.getServerId());
             request.setTerm(currentTerm);
             request.setLastLogTerm(getLastLogTerm());
             request.setLastLogIndex(logStore.getLastLogIndex());
-        } finally {
-            lock.unlock();
-        }
+        });
 
         log.info("vote request {}, to peer {}", request, peer.getServer().getServerId());
         VoteResponse response = peer.getPeerClient().vote(request);
         log.info("vote response {}, from peer {}", response, peer.getServer().getServerId());
-        voteResponse(peer, request, response);
-    }
 
-    /**
-     * 投票响应
-     * @param peer
-     * @param request
-     * @param response
-     */
-    private void voteResponse(Peer peer, VoteRequest request, VoteResponse response) {
-        lock.lock();
-        try {
+        // 投票响应
+        LockUtil.runWithLock(lock, () -> {
             if (currentTerm != request.getTerm() || state != RaftRole.CANDIDATE) {
                 log.info("ignore vote response, request: {}, response: {}", request, response);
                 return;
@@ -343,9 +318,7 @@ public class RaftNode extends AbstractLifeCycle {
                     becomeLeader();
                 }
             }
-        } finally {
-            lock.unlock();
-        }
+        });
     }
 
     /**
@@ -505,14 +478,7 @@ public class RaftNode extends AbstractLifeCycle {
         // 不需加锁, 因为有原子状态takingSnapshot保证不能并发生成快照
         stateMachine.takeSnapshot(metadata);
 
-        long lastIncludedIndex;
-        lock.lock();
-        try {
-            lastIncludedIndex = stateMachine.getMetadata().getLastIncludedIndex();
-        } finally {
-            lock.unlock();
-        }
-
+        long lastIncludedIndex = LockUtil.getWithLock(lock, () -> stateMachine.getMetadata().getLastIncludedIndex());
         // 删除已快照的日志
         if (lastIncludedIndex > 0 && logStore.getFirstLogIndex() <= lastIncludedIndex) {
             logStore.deletePrefix(lastIncludedIndex + 1 - raftConfig.getKeepLogNum());
@@ -724,12 +690,8 @@ public class RaftNode extends AbstractLifeCycle {
             stateMachine.closeSnapshotDataFile(list);
         }
 
-        lock.lock();
-        try {
-            peer.setNextIndex(lastIncludedIndex + 1);
-        } finally {
-            lock.unlock();
-        }
+        long nextIndex = lastIncludedIndex + 1;
+        LockUtil.runWithLock(lock, () -> peer.setNextIndex(nextIndex));
         log.info("end send install snapshot request to server={}", peer.getServer().getServerId());
     }
 
