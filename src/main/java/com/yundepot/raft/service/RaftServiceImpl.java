@@ -2,7 +2,6 @@ package com.yundepot.raft.service;
 
 import com.yundepot.raft.RaftNode;
 import com.yundepot.raft.bean.*;
-import com.yundepot.raft.common.Constant;
 import com.yundepot.raft.common.ResponseCode;
 import com.yundepot.raft.util.ClusterUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -128,9 +127,17 @@ public class RaftServiceImpl implements RaftService{
             if (raftNode.getLeaderId() == 0) {
                 raftNode.setLeaderId(request.getLeaderId());
             }
-            if (!raftNode.getStateMachine().installSnapshot(request)) {
-                return response;
-            }
+        } finally {
+            raftNode.getLock().unlock();
+        }
+
+        // 由原子状态installingSnapshot保证不会并发安装快照
+        if (!raftNode.getStateMachine().installSnapshot(request)) {
+            return response;
+        }
+
+        raftNode.getLock().lock();
+        try {
             // 成功安装快照后清除所有日志
             if (request.isDone()) {
                 raftNode.getLogStore().deleteSuffix(0);

@@ -482,6 +482,7 @@ public class RaftNode extends AbstractLifeCycle {
      * 周期性生成快照
      */
     private void takeSnapshot() {
+        SnapshotMetadata metadata = new SnapshotMetadata();
         lock.lock();
         try {
             // 日志太小不处理
@@ -494,19 +495,23 @@ public class RaftNode extends AbstractLifeCycle {
                 return;
             }
 
-            SnapshotMetadata metadata = new SnapshotMetadata();
             metadata.setLastIncludedIndex(lastAppliedIndex);
             metadata.setLastIncludedTerm(entry.getTerm());
             metadata.setCluster(cluster);
-            stateMachine.takeSnapshot(metadata);
+        } finally {
+            lock.unlock();
+        }
 
+        // 不需加锁, 因为有原子状态takingSnapshot保证不能并发生成快照
+        stateMachine.takeSnapshot(metadata);
+
+        lock.lock();
+        try {
             // 删除已快照的日志
             long lastIncludedIndex = stateMachine.getMetadata().getLastIncludedIndex();
             if (lastIncludedIndex > 0 && logStore.getFirstLogIndex() <= lastIncludedIndex) {
                 logStore.deletePrefix(lastIncludedIndex + 1 - raftConfig.getKeepLogNum());
             }
-        } catch (Exception ex) {
-            log.error("take snapshot error", ex);
         } finally {
             lock.unlock();
         }
