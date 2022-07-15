@@ -120,7 +120,7 @@ public class RaftClient {
      */
     private Response execute(Callable<Response> task, int count){
         // 限制重试次数
-        if (count > cluster.getServerList().size()) {
+        if (count >= cluster.getServerList().size()) {
             return Response.fail(ResponseCode.FAIL.getValue());
         }
 
@@ -139,9 +139,10 @@ public class RaftClient {
                 UndeclaredThrowableException ex = (UndeclaredThrowableException) e;
                 Throwable undeclaredThrowable = ex.getUndeclaredThrowable();
                 if (undeclaredThrowable instanceof ConnectionException) {
-                    // 优化节点选择
-                    connect(cluster.getServerList().get(count + 1));
-                    return execute(task, count + 1);
+                    if (count + 1 < cluster.getServerList().size()) {
+                        connect(cluster.getServerList().get(count + 1));
+                        return execute(task, count + 1);
+                    }
                 }
             }
             throw new RaftException("execute call remote error", e);
