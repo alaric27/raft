@@ -9,6 +9,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -78,6 +79,27 @@ public class RaftFileUtils {
         } catch (Exception e) {
             log.error("update file error", e);
             throw new RaftException("update file error, fileName = " + fileName, e);
+        }
+    }
+
+    public static void copySnapshot(File srcDir, File destDir) throws IOException {
+        if (!srcDir.exists()) {
+            throw new FileNotFoundException();
+        }
+
+        if (!destDir.exists()) {
+            destDir.mkdirs();
+        }
+
+        File[] files = srcDir.listFiles();
+        for (File file : files) {
+            String fileName = file.getName();
+            File link = new File(destDir.getAbsolutePath() + File.separator + file.getName());
+            if (fileName.endsWith(".sst")) {
+                Files.createLink(link.toPath(), file.toPath());
+            } else {
+                FileUtils.copyFile(file, link);
+            }
         }
     }
 }

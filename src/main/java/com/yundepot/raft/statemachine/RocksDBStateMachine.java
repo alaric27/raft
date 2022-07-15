@@ -136,8 +136,7 @@ public class RocksDBStateMachine implements StateMachine {
 
             // 将快照目录复制到到数据目录
             if (ssDir.exists()) {
-                // todo 优化文件拷贝效率
-                FileSystemUtils.copyRecursively(ssDir.toPath(), dataFile.toPath());
+                RaftFileUtils.copySnapshot(ssDir, dataFile);
             }
 
             DBOptions options = new DBOptions();
