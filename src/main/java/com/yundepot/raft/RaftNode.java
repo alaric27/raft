@@ -457,7 +457,6 @@ public class RaftNode extends AbstractLifeCycle {
                 peer.setNextIndex(peer.getMatchIndex() + 1);
                 peer.setLastResponseStatus(true);
                 peer.setLastResponseTime(System.currentTimeMillis());
-                appendCondition.signalAll();
                 if (ClusterUtil.containsServer(cluster, peer.getServer().getServerId())) {
                     advanceCommitIndex();
                 } else {
@@ -468,6 +467,7 @@ public class RaftNode extends AbstractLifeCycle {
                         catchUpCondition.signalAll();
                     }
                 }
+                appendCondition.signalAll();
             } else {
                 // 如果失败了, 往前追溯日志
                 long nextIndex = Math.min(response.getLastLogIndex() + 1, peer.getNextIndex() - 1);
@@ -590,7 +590,7 @@ public class RaftNode extends AbstractLifeCycle {
      */
     public void applyConfig(LogEntry entry) {
         final List<Server> serverList = JSON.parseObject(entry.getData(), new TypeReference<List<Server>>(){}.getType());
-        // 如果新集群已经不包含该节点
+        // 如果新集群已经不包含当前节点
         if (!ClusterUtil.containsServer(serverList, localServer.getServerId())) {
             Set<Server> newServers = new HashSet<>();
             newServers.add(localServer);
