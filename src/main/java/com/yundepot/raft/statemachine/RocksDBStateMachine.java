@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.rocksdb.*;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.FileSystemUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -116,6 +115,7 @@ public class RocksDBStateMachine implements StateMachine {
     @Override
     public void loadSnapshot() {
         try {
+            long start = System.currentTimeMillis();
             // 加载快照期间不能写入
             if (rocksDB != null) {
                 rocksDB.close();
@@ -152,6 +152,7 @@ public class RocksDBStateMachine implements StateMachine {
             defaultHandle = handleList.get(0);
 
             reloadMetadata();
+            log.info("loadSnapshot success cost: {}", System.currentTimeMillis() - start);
         } catch (Exception e) {
             log.error("load snapshot error", e);
             throw new RaftException("load snapshot error", e);
