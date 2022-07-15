@@ -53,4 +53,10 @@ public class RocksDBTest {
             rocksDB.put(defaultHandle, key, value);
         }
     }
+
+    @Test
+    public void size() {
+        ColumnFamilyMetaData meta = rocksDB.getColumnFamilyMetaData(defaultHandle);
+        System.out.println(meta.size() / 1024 / 1024);
+    }
 }
