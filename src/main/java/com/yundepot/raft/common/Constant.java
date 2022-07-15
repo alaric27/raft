@@ -9,5 +9,5 @@ public class Constant {
     /**
      * 代表没有leader
      */
-    public static final int NO_LEADER = 0;
+    public static final int ZERO = 0;
 }

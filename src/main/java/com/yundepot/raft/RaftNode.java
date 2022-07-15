@@ -349,8 +349,8 @@ public class RaftNode extends AbstractLifeCycle {
     public void stepDown(long newTerm) {
         if (currentTerm < newTerm) {
             currentTerm = newTerm;
-            votedFor = Constant.NO_LEADER;
-            leaderId = Constant.NO_LEADER;
+            votedFor = Constant.ZERO;
+            leaderId = Constant.ZERO;
             stateStorage.update(currentTerm, votedFor);
         }
         state = RaftRole.FOLLOWER;
