@@ -505,15 +505,17 @@ public class RaftNode extends AbstractLifeCycle {
         // 不需加锁, 因为有原子状态takingSnapshot保证不能并发生成快照
         stateMachine.takeSnapshot(metadata);
 
+        long lastIncludedIndex;
         lock.lock();
         try {
-            // 删除已快照的日志
-            long lastIncludedIndex = stateMachine.getMetadata().getLastIncludedIndex();
-            if (lastIncludedIndex > 0 && logStore.getFirstLogIndex() <= lastIncludedIndex) {
-                logStore.deletePrefix(lastIncludedIndex + 1 - raftConfig.getKeepLogNum());
-            }
+            lastIncludedIndex = stateMachine.getMetadata().getLastIncludedIndex();
         } finally {
             lock.unlock();
+        }
+
+        // 删除已快照的日志
+        if (lastIncludedIndex > 0 && logStore.getFirstLogIndex() <= lastIncludedIndex) {
+            logStore.deletePrefix(lastIncludedIndex + 1 - raftConfig.getKeepLogNum());
         }
     }
 

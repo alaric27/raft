@@ -33,8 +33,8 @@ public class RocksDBLogStore implements LogStore{
     /**
      * 为了效率额外维护了 firstLogIndex 和 lastLogIndex
      */
-    private long firstLogIndex;
-    private long lastLogIndex;
+    private volatile long firstLogIndex;
+    private volatile long lastLogIndex;
 
     public RocksDBLogStore(RaftConfig config) {
         this.logDir = config.getRootDir() + "log" + File.separator;
@@ -133,12 +133,16 @@ public class RocksDBLogStore implements LogStore{
     @Override
     public void deletePrefix(long logIndex) {
         try {
+            long start = System.currentTimeMillis();
             byte[] begin = ByteUtil.longToBytes(getFirstLogIndex());
             byte[] end = ByteUtil.longToBytes(logIndex);
             rocksDB.deleteRange(defaultHandle, begin, end);
             // 删除sst文件, 释放磁盘空间
             rocksDB.deleteFilesInRanges(defaultHandle, Arrays.asList(begin, end), false);
+            // 压缩日志
+            rocksDB.compactRange(defaultHandle);
             firstLogIndex = logIndex;
+            log.info("delete prefix success cost: {}", System.currentTimeMillis() - start);
         } catch (RocksDBException e) {
             log.error("deletePrefix error logIndex: {}", logIndex, e);
             throw new RaftException("deletePrefix error", e);

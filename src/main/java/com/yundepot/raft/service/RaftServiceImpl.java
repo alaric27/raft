@@ -136,16 +136,11 @@ public class RaftServiceImpl implements RaftService{
             return response;
         }
 
-        raftNode.getLock().lock();
-        try {
-            // 成功安装快照后清除所有日志
-            if (request.isDone()) {
-                raftNode.getLogStore().deleteSuffix(0);
-            }
-            response.setResCode(ResponseCode.SUCCESS.getValue());
-        } finally {
-            raftNode.getLock().unlock();
+        // 成功安装快照后清除所有日志
+        if (request.isDone()) {
+            raftNode.getLogStore().deleteSuffix(0);
         }
+        response.setResCode(ResponseCode.SUCCESS.getValue());
         return response;
     }
 

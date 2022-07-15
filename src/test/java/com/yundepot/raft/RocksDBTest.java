@@ -28,9 +28,9 @@ public class RocksDBTest {
         List<ColumnFamilyDescriptor> descriptorList = new ArrayList<>();
         descriptorList.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY));
 
-        String dataDir = "/Users/zyn/Desktop/candelete/node1/data/";
+        String dataDir = "/Users/zyn/Desktop/candelete/node1/log/";
         List<ColumnFamilyHandle> handleList = new ArrayList<>();
-        rocksDB = RocksDB.openReadOnly(options, dataDir, descriptorList, handleList);
+        rocksDB = RocksDB.open(options, dataDir, descriptorList, handleList);
         assert (handleList.size() == 1);
         defaultHandle = handleList.get(0);
     }
@@ -55,8 +55,12 @@ public class RocksDBTest {
     }
 
     @Test
-    public void size() {
+    public void size() throws Exception {
         ColumnFamilyMetaData meta = rocksDB.getColumnFamilyMetaData(defaultHandle);
         System.out.println(meta.size() / 1024 / 1024);
+        rocksDB.compactRange(defaultHandle);
+
+        ColumnFamilyMetaData meta1 = rocksDB.getColumnFamilyMetaData(defaultHandle);
+        System.out.println(meta1.size() / 1024 / 1024);
     }
 }
