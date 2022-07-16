@@ -11,6 +11,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 
 /**
+ * 该类方法的调用都在RaftNode的大锁中
  * @author zhaiyanan
  * @date 2022/6/26  13:21
  */

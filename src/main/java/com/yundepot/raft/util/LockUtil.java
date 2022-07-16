@@ -25,6 +25,9 @@ public class LockUtil {
         try {
             return task.call();
         } catch(Exception e) {
+            if (e instanceof RaftException) {
+                throw (RaftException) e;
+            }
             throw new RaftException(e);
         } finally {
             lock.unlock();

@@ -12,10 +12,10 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * 基于rocksdb的日志存储
- * 非线程安全，所有方法的调用都在上层RaftNode的锁中
  * @author zhaiyanan
  * @date 2022/7/5  10:24
  */
@@ -29,12 +29,13 @@ public class RocksDBLogStore implements LogStore{
     private ColumnFamilyHandle defaultHandle;
     private WriteOptions writeOptions;
     private String logDir;
+    private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
      * 为了效率额外维护了 firstLogIndex 和 lastLogIndex
      */
-    private volatile long firstLogIndex;
-    private volatile long lastLogIndex;
+    private long firstLogIndex;
+    private long lastLogIndex;
 
     public RocksDBLogStore(RaftConfig config) {
         this.logDir = config.getRootDir() + "log" + File.separator;
@@ -66,36 +67,47 @@ public class RocksDBLogStore implements LogStore{
 
     @Override
     public long getFirstLogIndex() {
-        if (firstLogIndex != 0) {
-            return firstLogIndex;
-        }
+        lock.readLock().lock();
+        try {
+            if (firstLogIndex != 0) {
+                return firstLogIndex;
+            }
 
-        RocksIterator it = rocksDB.newIterator(defaultHandle);
-        it.seekToFirst();
-        if (it.isValid()) {
-            firstLogIndex = ByteUtil.bytesToLong(it.key());
-            return firstLogIndex;
+            RocksIterator it = rocksDB.newIterator(defaultHandle);
+            it.seekToFirst();
+            if (it.isValid()) {
+                firstLogIndex = ByteUtil.bytesToLong(it.key());
+                return firstLogIndex;
+            }
+            return 0;
+        } finally {
+            lock.readLock().unlock();
         }
-        return 0;
     }
 
     @Override
     public long getLastLogIndex() {
-        if (lastLogIndex != 0) {
-            return lastLogIndex;
-        }
+        lock.readLock().lock();
+        try {
+            if (lastLogIndex != 0) {
+                return lastLogIndex;
+            }
 
-        RocksIterator it = rocksDB.newIterator(defaultHandle);
-        it.seekToLast();
-        if (it.isValid()) {
-            lastLogIndex = ByteUtil.bytesToLong(it.key());
-            return lastLogIndex;
+            RocksIterator it = rocksDB.newIterator(defaultHandle);
+            it.seekToLast();
+            if (it.isValid()) {
+                lastLogIndex = ByteUtil.bytesToLong(it.key());
+                return lastLogIndex;
+            }
+            return 0;
+        } finally {
+            lock.readLock().unlock();
         }
-        return 0;
     }
 
     @Override
     public LogEntry getEntry(long logIndex) {
+        lock.readLock().lock();
         try {
             long firstLogIndex = getFirstLogIndex();
             long lastLogIndex = getLastLogIndex();
@@ -111,11 +123,14 @@ public class RocksDBLogStore implements LogStore{
         } catch (RocksDBException e) {
             log.error("get log entry error logIndex = {}", logIndex, e);
             throw new RaftException("get log entry error logIndex = " + logIndex, e);
+        } finally {
+            lock.readLock().unlock();
         }
     }
 
     @Override
     public void append(List<LogEntry> logEntryList) {
+        lock.writeLock().lock();
         try {
             WriteBatch writeBatch = new WriteBatch();
             for (LogEntry logEntry : logEntryList) {
@@ -127,11 +142,14 @@ public class RocksDBLogStore implements LogStore{
         } catch (RocksDBException e) {
             log.error("append raft log exception", e);
             throw new RaftException("append log error", e);
+        } finally {
+            lock.writeLock().unlock();
         }
     }
 
     @Override
     public void deletePrefix(long logIndex) {
+        lock.writeLock().lock();
         try {
             long start = System.currentTimeMillis();
             byte[] begin = ByteUtil.longToBytes(getFirstLogIndex());
@@ -146,11 +164,14 @@ public class RocksDBLogStore implements LogStore{
         } catch (RocksDBException e) {
             log.error("deletePrefix error logIndex: {}", logIndex, e);
             throw new RaftException("deletePrefix error", e);
+        } finally {
+            lock.writeLock().unlock();
         }
     }
 
     @Override
     public void deleteSuffix(long logIndex) {
+        lock.writeLock().lock();
         try {
             byte[] begin = ByteUtil.longToBytes(logIndex + 1);
             byte[] end = ByteUtil.longToBytes(getLastLogIndex() + 1);
@@ -160,6 +181,8 @@ public class RocksDBLogStore implements LogStore{
         } catch (RocksDBException e) {
             log.error("deletePrefix error logIndex: {}", logIndex, e);
             throw new RaftException("deletePrefix error", e);
+        } finally {
+            lock.writeLock().unlock();
         }
     }
 
