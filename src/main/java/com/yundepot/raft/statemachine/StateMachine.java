@@ -1,9 +1,10 @@
 package com.yundepot.raft.statemachine;
 
-import com.yundepot.raft.bean.Cluster;
+import com.yundepot.raft.bean.ClusterConfig;
 import com.yundepot.raft.bean.InstallSnapshotRequest;
 import com.yundepot.raft.bean.SnapshotDataFile;
 import com.yundepot.raft.bean.SnapshotMetadata;
+
 import java.util.List;
 
 /**
@@ -28,9 +29,16 @@ public interface StateMachine {
     byte[] get(byte[] key);
 
     /**
-     * 更新集群配置
+     * 写入集群配置
+     * @param clusterConfig
      */
-    void putConfig(Cluster cluster);
+    void putConfig(ClusterConfig clusterConfig);
+
+    /**
+     * 读取集群配置
+     * @return
+     */
+    ClusterConfig getConfig();
 
     /**
      * 加载快照到状态机

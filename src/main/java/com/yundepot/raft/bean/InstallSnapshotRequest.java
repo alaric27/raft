@@ -23,5 +23,4 @@ public class InstallSnapshotRequest implements Serializable {
 
     private boolean first;
     private String fileName;
-    private Cluster cluster;
 }

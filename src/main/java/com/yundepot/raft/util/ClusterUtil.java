@@ -1,7 +1,7 @@
 package com.yundepot.raft.util;
 
 
-import com.yundepot.raft.bean.Cluster;
+import com.yundepot.raft.bean.ClusterConfig;
 import com.yundepot.raft.bean.Server;
 
 import java.util.ArrayList;
@@ -19,7 +19,7 @@ public class ClusterUtil {
      * @param serverId
      * @return
      */
-    public static boolean containsServer(Cluster cluster, int serverId) {
+    public static boolean containsServer(ClusterConfig cluster, int serverId) {
         return containsServer(cluster.getServerList(), serverId);
     }
 
@@ -48,7 +48,7 @@ public class ClusterUtil {
      * @param serverId
      * @return
      */
-    public static Server getServer(Cluster cluster, int serverId) {
+    public static Server getServer(ClusterConfig cluster, int serverId) {
         return getServer(cluster.getServerList(), serverId);
     }
 
@@ -66,13 +66,13 @@ public class ClusterUtil {
      * @param clusterInfo
      * @return
      */
-    public static Cluster parserCluster(String clusterInfo) {
+    public static ClusterConfig parserCluster(String clusterInfo) {
         List<Server> serverList = new ArrayList<>();
         String[] splitArray = clusterInfo.split(",");
         for (String serverString : splitArray) {
             serverList.add(parserServer(serverString));
         }
-        Cluster cluster = new Cluster();
+        ClusterConfig cluster = new ClusterConfig();
         cluster.setServerList(serverList);
         return cluster;
     }

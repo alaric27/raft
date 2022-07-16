@@ -1,7 +1,7 @@
 package com.yundepot.raft;
 
 import com.yundepot.oaa.exception.ConnectionException;
-import com.yundepot.raft.bean.Cluster;
+import com.yundepot.raft.bean.ClusterConfig;
 import com.yundepot.raft.bean.Response;
 import com.yundepot.raft.bean.Server;
 import com.yundepot.raft.common.ResponseCode;
@@ -25,13 +25,13 @@ public class RaftClient {
     private RpcClient rpcClient;
     private RaftAdminService adminService;
     private PairService pairService;
-    private Cluster cluster;
+    private ClusterConfig cluster;
 
     public RaftClient(String cluster) {
         this(ClusterUtil.parserCluster(cluster));
     }
 
-    public RaftClient(Cluster cluster) {
+    public RaftClient(ClusterConfig cluster) {
         this.cluster = cluster;
         this.leader = cluster.getServerList().get(0);
         connect(leader);
@@ -66,7 +66,7 @@ public class RaftClient {
      * 获取集群节点信息
      * @return
      */
-    public Cluster getClusterInfo() {
+    public ClusterConfig getClusterInfo() {
         return adminService.getClusterInfo();
     }
 

@@ -22,10 +22,4 @@ public class SnapshotMetadata {
      * 快照中包含的最后日志条目的任期号
      */
     private long lastIncludedTerm;
-
-    /**
-     * 集群配置
-     */
-    private Cluster cluster;
-
 }

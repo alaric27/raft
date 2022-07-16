@@ -24,7 +24,7 @@ public class RaftServiceImpl implements RaftService{
         try {
             VoteResponse voteResponse = VoteResponse.builder().voteGranted(false).term(raftNode.getCurrentTerm()).build();
             // 如果请求节点不属于当前集群，则不给其投票
-            if (!ClusterUtil.containsServer(raftNode.getCluster(), request.getCandidateId())) {
+            if (!ClusterUtil.containsServer(raftNode.getClusterConfig(), request.getCandidateId())) {
                 return voteResponse;
             }
             // 如果请求的term 小于当前节点的term，则不给其投票
@@ -47,7 +47,7 @@ public class RaftServiceImpl implements RaftService{
         raftNode.getLock().lock();
         try {
             VoteResponse voteResponse = VoteResponse.builder().voteGranted(false).term(raftNode.getCurrentTerm()).build();
-            if (!ClusterUtil.containsServer(raftNode.getCluster(), request.getCandidateId())) {
+            if (!ClusterUtil.containsServer(raftNode.getClusterConfig(), request.getCandidateId())) {
                 return voteResponse;
             }
             // 如果请求的term 小于当前节点的term，则不给其投票
@@ -66,7 +66,7 @@ public class RaftServiceImpl implements RaftService{
                 // 给别人投票后，下台，重置选举
                 raftNode.stepDown(request.getTerm());
                 raftNode.setVotedFor(request.getCandidateId());
-                raftNode.getStateStorage().update(raftNode.getCurrentTerm(), raftNode.getVotedFor());
+                raftNode.getNodeStageStore().update(raftNode.getCurrentTerm(), raftNode.getVotedFor());
                 voteResponse.setVoteGranted(true);
                 voteResponse.setTerm(raftNode.getCurrentTerm());
             }
@@ -131,14 +131,8 @@ public class RaftServiceImpl implements RaftService{
             raftNode.getLock().unlock();
         }
 
-        // 由原子状态installingSnapshot保证不会并发安装快照
-        if (!raftNode.getStateMachine().installSnapshot(request)) {
+        if (!raftNode.installSnapshot(request)) {
             return response;
-        }
-
-        // 成功安装快照后清除所有日志
-        if (request.isDone()) {
-            raftNode.getLogStore().deleteSuffix(0);
         }
         response.setResCode(ResponseCode.SUCCESS.getValue());
         return response;

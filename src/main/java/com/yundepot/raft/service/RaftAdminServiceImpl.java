@@ -2,7 +2,7 @@ package com.yundepot.raft.service;
 
 import com.alibaba.fastjson.JSON;
 import com.yundepot.raft.RaftNode;
-import com.yundepot.raft.bean.Cluster;
+import com.yundepot.raft.bean.ClusterConfig;
 import com.yundepot.raft.bean.Peer;
 import com.yundepot.raft.bean.Response;
 import com.yundepot.raft.bean.Server;
@@ -28,12 +28,12 @@ public class RaftAdminServiceImpl implements RaftAdminService {
 
     @Override
     public Server getLeader() {
-        return ClusterUtil.getServer(raftNode.getCluster(), raftNode.getLeaderId());
+        return ClusterUtil.getServer(raftNode.getClusterConfig(), raftNode.getLeaderId());
     }
 
     @Override
-    public Cluster getClusterInfo() {
-        return raftNode.getCluster();
+    public ClusterConfig getClusterInfo() {
+        return raftNode.getClusterConfig();
     }
 
     @Override
@@ -44,7 +44,7 @@ public class RaftAdminServiceImpl implements RaftAdminService {
         raftNode.getLock().lock();
         try {
             if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
-                return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getCluster(), raftNode.getLeaderId()));
+                return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getClusterConfig(), raftNode.getLeaderId()));
             }
 
             if (raftNode.getPeerMap().containsKey(server.getServerId())) {
@@ -72,7 +72,7 @@ public class RaftAdminServiceImpl implements RaftAdminService {
 
             List<Server> newServerList = new ArrayList<>();
             newServerList.add(server);
-            newServerList.addAll(raftNode.getCluster().getServerList());
+            newServerList.addAll(raftNode.getClusterConfig().getServerList());
             byte[] bytes = JSON.toJSONBytes(newServerList);
             // 复制集群变更到其他节点
             boolean success = raftNode.replicate(bytes, LogType.CONFIG);
@@ -96,10 +96,10 @@ public class RaftAdminServiceImpl implements RaftAdminService {
         raftNode.getLock().lock();
         try {
             if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
-                return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getCluster(), raftNode.getLeaderId()));
+                return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getClusterConfig(), raftNode.getLeaderId()));
             }
 
-            if (!ClusterUtil.containsServer(raftNode.getCluster(), server.getServerId())) {
+            if (!ClusterUtil.containsServer(raftNode.getClusterConfig(), server.getServerId())) {
                 return response;
             }
 
@@ -108,7 +108,7 @@ public class RaftAdminServiceImpl implements RaftAdminService {
                 return response;
             }
 
-            List<Server> newServerList = ClusterUtil.removeServer(raftNode.getCluster().getServerList(), server.getServerId());
+            List<Server> newServerList = ClusterUtil.removeServer(raftNode.getClusterConfig().getServerList(), server.getServerId());
             byte[] bytes = JSON.toJSONBytes(newServerList);
             boolean success = raftNode.replicate(bytes, LogType.CONFIG);
             if (success) {

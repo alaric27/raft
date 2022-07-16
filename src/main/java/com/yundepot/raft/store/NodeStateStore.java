@@ -25,7 +25,7 @@ public class NodeStateStore {
         this.fileName = rootDir + File.separator + "NodeState";
     }
 
-    public void loadNodeState() {
+    public void load() {
         File file = new File(fileName);
         if (file.exists()) {
             String content = FileUtil.readString(file, StandardCharsets.UTF_8);
@@ -37,18 +37,13 @@ public class NodeStateStore {
         }
     }
 
-    /**
-     * 更新操作，需所内操作
-     * @param currentTerm
-     * @param votedFor
-     */
     public void update(long currentTerm, int votedFor) {
         nodeState.setCurrentTerm(currentTerm);
         nodeState.setVotedFor(votedFor);
         RaftFileUtils.updateFile(fileName, JSON.toJSONString(nodeState));
     }
 
-    public NodeState getNodeState() {
+    public NodeState get() {
         return nodeState;
     }
 }

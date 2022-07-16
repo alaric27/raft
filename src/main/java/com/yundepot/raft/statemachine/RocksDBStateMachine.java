@@ -4,11 +4,13 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.file.FileMode;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
-import com.yundepot.raft.bean.Cluster;
+import com.yundepot.raft.bean.ClusterConfig;
 import com.yundepot.raft.bean.InstallSnapshotRequest;
 import com.yundepot.raft.bean.SnapshotDataFile;
 import com.yundepot.raft.bean.SnapshotMetadata;
+import com.yundepot.raft.common.Constant;
 import com.yundepot.raft.exception.RaftException;
+import com.yundepot.raft.store.ClusterConfigStore;
 import com.yundepot.raft.util.RaftFileUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -33,19 +35,19 @@ public class RocksDBStateMachine implements StateMachine {
     /**
      * rocksdb data 存储目录
      */
-    private String dataDir;
+    private final String dataDir;
 
     /**
      * 快照目录
      */
-    private String snapshotDir;
+    private final String snapshotDir;
 
     /**
      * 快照临时目录
      */
-    private String snapshotTmpDir;
+    private final String snapshotTmpDir;
 
-    private String metadataFile;
+    private final String metadataFile;
 
     /**
      * 快照元数据
@@ -58,19 +60,18 @@ public class RocksDBStateMachine implements StateMachine {
     private AtomicBoolean installingSnapshot = new AtomicBoolean(false);
 
     /**
+     * 快照打开次数
+     */
+    private AtomicInteger openCount = new AtomicInteger();
+    /**
      * 是否正在生成快照
      */
     private AtomicBoolean takingSnapshot = new AtomicBoolean(false);
     private RocksDB rocksDB;
-
     private WriteOptions writeOptions = new WriteOptions();
-
     private ColumnFamilyHandle defaultHandle;
-
-    /**
-     * 快照打开次数
-     */
-    private AtomicInteger openCount = new AtomicInteger();
+    private ColumnFamilyHandle configHandle;
+    private ClusterConfigStore clusterConfigStore;
 
     static {
         RocksDB.loadLibrary();
@@ -106,10 +107,26 @@ public class RocksDBStateMachine implements StateMachine {
     }
 
     @Override
-    public void putConfig(Cluster cluster) {
-        RaftFileUtils.createDir(snapshotDir);
-        metadata.setCluster(cluster);
-        RaftFileUtils.updateFile(metadataFile, JSON.toJSONString(metadata));
+    public void putConfig(ClusterConfig clusterConfig) {
+        try {
+            rocksDB.put(configHandle, writeOptions, Constant.CONFIG, JSON.toJSONBytes(clusterConfig));
+            clusterConfigStore.update(clusterConfig);
+        } catch (Exception e) {
+            throw new RaftException("write config error", e);
+        }
+    }
+
+    @Override
+    public ClusterConfig getConfig() {
+        try {
+           byte[] bytes = rocksDB.get(configHandle, Constant.CONFIG);
+           if (bytes != null) {
+               return JSON.parseObject(bytes, ClusterConfig.class);
+           }
+        } catch (Exception e) {
+            throw new RaftException("read config error", e);
+        }
+        return null;
     }
 
     @Override
@@ -145,11 +162,13 @@ public class RocksDBStateMachine implements StateMachine {
 
             List<ColumnFamilyDescriptor> descriptorList = new ArrayList<>();
             descriptorList.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY));
+            descriptorList.add(new ColumnFamilyDescriptor(Constant.CONFIG));
 
             List<ColumnFamilyHandle> handleList = new ArrayList<>();
             rocksDB = RocksDB.open(options, dataDir, descriptorList, handleList);
-            assert (handleList.size() == 1);
+            assert (handleList.size() == 2);
             defaultHandle = handleList.get(0);
+            configHandle = handleList.get(1);
 
             reloadMetadata();
             log.info("loadSnapshot success cost: {}", System.currentTimeMillis() - start);
@@ -239,7 +258,6 @@ public class RocksDBStateMachine implements StateMachine {
                 FileUtils.moveDirectory(tmpDir, snapshotDirFile);
                 loadSnapshot();
             }
-
         } catch (Exception e) {
             log.warn("install snapshot error", e);
             return false;
@@ -273,12 +291,15 @@ public class RocksDBStateMachine implements StateMachine {
 
     @Override
     public void closeSnapshotDataFile(List<SnapshotDataFile> list) {
-        openCount.incrementAndGet();
-        if (CollectionUtils.isEmpty(list)) {
-            return;
-        }
-        for (SnapshotDataFile dataFile : list) {
-            RaftFileUtils.closeFile(dataFile.getRandomAccessFile());
+        try {
+            if (CollectionUtils.isEmpty(list)) {
+                return;
+            }
+            for (SnapshotDataFile dataFile : list) {
+                RaftFileUtils.closeFile(dataFile.getRandomAccessFile());
+            }
+        } finally {
+            openCount.incrementAndGet();
         }
     }
 

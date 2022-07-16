@@ -19,7 +19,7 @@ public interface RaftAdminService {
      * 获取集群节点信息
      * @return
      */
-    Cluster getClusterInfo();
+    ClusterConfig getClusterInfo();
 
     /**
      * 添加节点
