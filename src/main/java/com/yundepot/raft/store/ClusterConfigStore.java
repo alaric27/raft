@@ -20,7 +20,7 @@ public class ClusterConfigStore {
     private ClusterConfig cluster;
 
     public ClusterConfigStore(String rootDir) {
-        this.fileName = rootDir + File.separator + "Config";
+        this.fileName = rootDir + File.separator + "ClusterConfig";
     }
 
     public void load() {
