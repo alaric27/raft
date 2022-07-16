@@ -10,6 +10,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 
 /**
+ * 集群配置, 为了重启后不扫描所有日志获取最信息集群配置, 每次集群配置更新时持久化到本地文件
  * 该类方法的调用都在RaftNode的大锁中
  * @author zhaiyanan
  * @date 2022/7/16  09:26

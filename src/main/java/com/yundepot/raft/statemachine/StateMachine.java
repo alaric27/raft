@@ -30,15 +30,15 @@ public interface StateMachine {
 
     /**
      * 写入集群配置
-     * @param clusterConfig
+     * @param value
      */
-    void putConfig(ClusterConfig clusterConfig);
+    void putConfig(byte[] value);
 
     /**
      * 读取集群配置
      * @return
      */
-    ClusterConfig getConfig();
+    byte[] getConfig();
 
     /**
      * 加载快照到状态机

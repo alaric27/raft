@@ -126,6 +126,7 @@ public class RaftNode extends AbstractLifeCycle {
     private ScheduledTimer electionTimer;
     private ScheduledTimer heartbeatTimer;
     private RpcServer rpcServer;
+    private ClusterConfigStore clusterConfigStore;
 
     public RaftNode(RaftConfig raftConfig) {
         this.raftConfig = raftConfig;
@@ -134,6 +135,7 @@ public class RaftNode extends AbstractLifeCycle {
         this.stateMachine = new RocksDBStateMachine(raftConfig.getRootDir());
         this.nodeStageStore = new NodeStateStore(raftConfig.getRootDir());
         this.logStore = new RocksDBLogStore(raftConfig);
+        this.clusterConfigStore = new ClusterConfigStore(raftConfig.getRootDir());
 
         // 初始化rpc服务
         initRpc();
@@ -148,13 +150,11 @@ public class RaftNode extends AbstractLifeCycle {
                 peer.setNextIndex(getLastLogIndex() + 1);
                 peerMap.put(server.getServerId(), peer);
             }
-
         });
 
         executorService = new ThreadPoolExecutor(raftConfig.getTpMin(), raftConfig.getTpMax(), 60, TimeUnit.SECONDS,
                                                     new LinkedBlockingQueue<>(), new NamedThreadFactory("raft", true));
         scheduledExecutorService = Executors.newScheduledThreadPool(2, new NamedThreadFactory("raftScheduled", true));
-
         electionTimer = new ScheduledTimer("election", raftConfig.getElectionTimeout(), () -> startPreVote(), RandomUtil::getRangeLong);
         heartbeatTimer = new ScheduledTimer("heartbeat", raftConfig.getHeartbeatPeriod(), () -> sendHeartbeat());
     }
@@ -167,15 +167,22 @@ public class RaftNode extends AbstractLifeCycle {
         logStore.loadLog();
         nodeStageStore.load();
         stateMachine.loadSnapshot();
+        clusterConfigStore.load();
 
         this.currentTerm = nodeStageStore.get().getCurrentTerm();
         this.votedFor = nodeStageStore.get().getVotedFor();
         this.commitIndex = stateMachine.getMetadata().getLastIncludedIndex();
         this.lastAppliedIndex = commitIndex;
 
-        // 如果快照中的集群配置不为空，则以快照为准
-        if (stateMachine.getConfig() != null) {
-            this.clusterConfig = stateMachine.getConfig();
+        // 如果快照中的集群配置不为空，则使用快照中的
+        byte[] bytes = stateMachine.getConfig();
+        if (bytes != null) {
+            this.clusterConfig = JSON.parseObject(bytes, ClusterConfig.class);
+        }
+
+        // 如果持久化的集群配置不为空，则以其为准
+        if (clusterConfigStore.get() != null) {
+            this.clusterConfig = clusterConfigStore.get();
         }
     }
 
@@ -561,7 +568,8 @@ public class RaftNode extends AbstractLifeCycle {
             Set<Server> newServers = new HashSet<>();
             newServers.add(localServer);
             clusterConfig.setServerList(serverList);
-            stateMachine.putConfig(clusterConfig);
+            stateMachine.putConfig(JSON.toJSONBytes(clusterConfig));
+            clusterConfigStore.update(clusterConfig);
             stepDown(currentTerm);
             peerMap.values().forEach(peer -> peer.getPeerClient().shutdown());
             peerMap.clear();
@@ -585,7 +593,8 @@ public class RaftNode extends AbstractLifeCycle {
         });
 
         clusterConfig.setServerList(serverList);
-        stateMachine.putConfig(clusterConfig);
+        stateMachine.putConfig(JSON.toJSONBytes(clusterConfig));
+        clusterConfigStore.update(clusterConfig);
     }
 
     /**
@@ -757,21 +766,20 @@ public class RaftNode extends AbstractLifeCycle {
         if (request.isDone()) {
             // 成功安装快照后清除所有日志
             logStore.deleteSuffix(0);
-            loadConfigFromStateMachine();
+
+            // 安装快照后更新集群配置
+            lock.lock();
+            try {
+                byte[] bytes = stateMachine.getConfig();
+                if (bytes != null) {
+                    this.clusterConfig = JSON.parseObject(bytes, ClusterConfig.class);
+                    clusterConfigStore.update(clusterConfig);
+                }
+            } finally {
+                lock.unlock();
+            }
         }
         return true;
-    }
-
-    private void loadConfigFromStateMachine() {
-        lock.lock();
-        try {
-            // 安装快照完成后，更新集群配置
-            if (stateMachine.getConfig() != null) {
-                clusterConfig = stateMachine.getConfig();
-            }
-        } finally {
-            lock.unlock();
-        }
     }
 
     /**

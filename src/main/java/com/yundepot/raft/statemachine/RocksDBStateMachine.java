@@ -4,13 +4,11 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.file.FileMode;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
-import com.yundepot.raft.bean.ClusterConfig;
 import com.yundepot.raft.bean.InstallSnapshotRequest;
 import com.yundepot.raft.bean.SnapshotDataFile;
 import com.yundepot.raft.bean.SnapshotMetadata;
 import com.yundepot.raft.common.Constant;
 import com.yundepot.raft.exception.RaftException;
-import com.yundepot.raft.store.ClusterConfigStore;
 import com.yundepot.raft.util.RaftFileUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -71,7 +69,6 @@ public class RocksDBStateMachine implements StateMachine {
     private WriteOptions writeOptions = new WriteOptions();
     private ColumnFamilyHandle defaultHandle;
     private ColumnFamilyHandle configHandle;
-    private ClusterConfigStore clusterConfigStore;
 
     static {
         RocksDB.loadLibrary();
@@ -107,26 +104,21 @@ public class RocksDBStateMachine implements StateMachine {
     }
 
     @Override
-    public void putConfig(ClusterConfig clusterConfig) {
+    public void putConfig(byte[] value) {
         try {
-            rocksDB.put(configHandle, writeOptions, Constant.CONFIG, JSON.toJSONBytes(clusterConfig));
-            clusterConfigStore.update(clusterConfig);
+            rocksDB.put(configHandle, writeOptions, Constant.CONFIG, value);
         } catch (Exception e) {
             throw new RaftException("write config error", e);
         }
     }
 
     @Override
-    public ClusterConfig getConfig() {
+    public byte[] getConfig() {
         try {
-           byte[] bytes = rocksDB.get(configHandle, Constant.CONFIG);
-           if (bytes != null) {
-               return JSON.parseObject(bytes, ClusterConfig.class);
-           }
+           return rocksDB.get(configHandle, Constant.CONFIG);
         } catch (Exception e) {
             throw new RaftException("read config error", e);
         }
-        return null;
     }
 
     @Override
