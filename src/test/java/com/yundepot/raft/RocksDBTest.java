@@ -28,7 +28,7 @@ public class RocksDBTest {
         List<ColumnFamilyDescriptor> descriptorList = new ArrayList<>();
         descriptorList.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY));
 
-        String dataDir = "/Users/zyn/Desktop/candelete/node1/log/";
+        String dataDir = "/Users/zyn/Desktop/candelete/test/log/";
         List<ColumnFamilyHandle> handleList = new ArrayList<>();
         rocksDB = RocksDB.open(options, dataDir, descriptorList, handleList);
         assert (handleList.size() == 1);
@@ -47,11 +47,8 @@ public class RocksDBTest {
 
     @Test
     public void put() throws Exception {
-        for (long i = 1; i < 1000; i++) {
-            byte[] key = ("aaa" + i).getBytes(StandardCharsets.UTF_8);
-            byte[] value = RaftClientTest.getRandomString(10).getBytes(StandardCharsets.UTF_8);
-            rocksDB.put(defaultHandle, key, value);
-        }
+        byte[] key = new byte[0];
+        rocksDB.put(key, "d".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test

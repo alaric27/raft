@@ -24,14 +24,14 @@ public class PairServiceImpl implements PairService {
     }
 
     @Override
-    public Response put(byte[] key, byte[] value) {
+    public Response set(byte[] key, byte[] value) {
         if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
             return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getClusterConfig(), raftNode.getLeaderId()));
         }
 
         // 数据同步写入raft集群
         byte[] data = ByteUtil.encode(key, value);
-        raftNode.replicate(data, LogType.DATA);
+        raftNode.replicate(data, LogType.SET);
         return Response.success();
     }
 
@@ -62,5 +62,16 @@ public class PairServiceImpl implements PairService {
             }
         }
         return Response.success(stateMachine.get(key));
+    }
+
+    @Override
+    public Response delete(byte[] key) {
+        if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
+            return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getClusterConfig(), raftNode.getLeaderId()));
+        }
+
+        // 数据同步写入raft集群
+        raftNode.replicate(key, LogType.DELETE);
+        return Response.success();
     }
 }

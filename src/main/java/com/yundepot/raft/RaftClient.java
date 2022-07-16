@@ -40,8 +40,10 @@ public class RaftClient {
     /**
      * 写入数据
      */
-    public void put(byte[] key, byte[] value) {
-        execute(()-> pairService.put(key, value));
+    public void set(byte[] key, byte[] value) {
+        assert key != null;
+        assert value != null;
+        execute(()-> pairService.set(key, value));
     }
 
     /**
@@ -50,8 +52,17 @@ public class RaftClient {
      * @return
      */
     public byte[] get(byte[] key) {
+        assert key != null;
         Response response = execute(()-> pairService.get(key));
         return (byte[]) response.getData();
+    }
+
+    /**
+     * 删除
+     */
+    public void delete(byte[] key) {
+        assert key != null;
+        execute(()-> pairService.delete(key));
     }
 
     /**
@@ -124,7 +135,7 @@ public class RaftClient {
             return Response.fail(ResponseCode.FAIL.getValue());
         }
 
-        Response response = null;
+        Response response;
         try {
             response = task.call();
             // 重定向到leader节点

@@ -345,7 +345,7 @@ public class RaftNode extends AbstractLifeCycle {
         electionTimer.stop();
         heartbeatTimer.start();
         // no-op，成为leader后进行一次空日志提交，从而隐式地提交之前任期的日志
-        replicate(null, LogType.DATA);
+        replicate(null, LogType.SET);
         log.info("server:{} become leader, currentTerm: {}", leaderId, currentTerm);
     }
 
@@ -548,12 +548,14 @@ public class RaftNode extends AbstractLifeCycle {
         if (entry.getData() == null || entry.getData().length <= 0) {
             return;
         }
-        if (entry.getLogType() == LogType.DATA.getValue()) {
+        if (entry.getLogType() == LogType.SET.getValue()) {
             Pair pair = ByteUtil.decode(entry.getData());
-            stateMachine.put(pair.getKey(), pair.getValue());
+            stateMachine.set(pair.getKey(), pair.getValue());
         } else if (entry.getLogType() == LogType.CONFIG.getValue()) {
             // 应用到集群配置
             applyConfig(entry);
+        } else if (entry.getLogType() == LogType.DELETE.getValue()) {
+            stateMachine.delete(entry.getData());
         }
     }
 
@@ -565,10 +567,10 @@ public class RaftNode extends AbstractLifeCycle {
         final List<Server> serverList = JSON.parseObject(entry.getData(), new TypeReference<List<Server>>(){}.getType());
         // 如果新集群已经不包含当前节点
         if (!ClusterUtil.containsServer(serverList, localServer.getServerId())) {
-            Set<Server> newServers = new HashSet<>();
-            newServers.add(localServer);
-            clusterConfig.setServerList(serverList);
-            stateMachine.putConfig(JSON.toJSONBytes(clusterConfig));
+            List<Server> newServerList = new ArrayList<>();
+            newServerList.add(localServer);
+            clusterConfig.setServerList(newServerList);
+            stateMachine.setConfig(JSON.toJSONBytes(clusterConfig));
             clusterConfigStore.update(clusterConfig);
             stepDown(currentTerm);
             peerMap.values().forEach(peer -> peer.getPeerClient().shutdown());
@@ -593,7 +595,7 @@ public class RaftNode extends AbstractLifeCycle {
         });
 
         clusterConfig.setServerList(serverList);
-        stateMachine.putConfig(JSON.toJSONBytes(clusterConfig));
+        stateMachine.setConfig(JSON.toJSONBytes(clusterConfig));
         clusterConfigStore.update(clusterConfig);
     }
 
@@ -865,7 +867,7 @@ public class RaftNode extends AbstractLifeCycle {
             }
         }
 
-        if (peerMap.values().stream().filter(p -> p.isLastResponseStatus()).count() + 1 < quorum) {
+        if (peerMap.values().stream().filter(Peer::isLastResponseStatus).count() + 1 < quorum) {
             return false;
         }
         return true;

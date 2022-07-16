@@ -1,6 +1,5 @@
 package com.yundepot.raft.statemachine;
 
-import com.yundepot.raft.bean.ClusterConfig;
 import com.yundepot.raft.bean.InstallSnapshotRequest;
 import com.yundepot.raft.bean.SnapshotDataFile;
 import com.yundepot.raft.bean.SnapshotMetadata;
@@ -19,7 +18,7 @@ public interface StateMachine {
      * @param key
      * @param value
      */
-    void put(byte[] key, byte[] value);
+    void set(byte[] key, byte[] value);
 
     /**
      * 读取数据
@@ -29,10 +28,16 @@ public interface StateMachine {
     byte[] get(byte[] key);
 
     /**
+     * 删除数据
+     * @param key
+     */
+    void delete(byte[] key);
+
+    /**
      * 写入集群配置
      * @param value
      */
-    void putConfig(byte[] value);
+    void setConfig(byte[] value);
 
     /**
      * 读取集群配置

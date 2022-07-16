@@ -87,12 +87,12 @@ public class RocksDBStateMachine implements StateMachine {
     }
 
     @Override
-    public void put(byte[] key, byte[] value) {
+    public void set(byte[] key, byte[] value) {
         try {
             rocksDB.put(defaultHandle, writeOptions, key, value);
         } catch (Exception e) {
-            log.error("写入数据失败", e);
-            throw new RaftException("write data error key = " + key, e);
+            log.error("write data error", e);
+            throw new RaftException("write data error", e);
         }
     }
 
@@ -101,13 +101,22 @@ public class RocksDBStateMachine implements StateMachine {
         try {
             return rocksDB.get(defaultHandle, key);
         } catch (Exception e) {
-            log.error("读取数据异常", e);
-            throw new RaftException("读取数据异常", e);
+            log.error("get data error", e);
+            throw new RaftException("get data error", e);
         }
     }
 
     @Override
-    public void putConfig(byte[] value) {
+    public void delete(byte[] key) {
+        try {
+            rocksDB.delete(defaultHandle, key);
+        } catch (RocksDBException e) {
+            throw new RaftException("delete key error", e);
+        }
+    }
+
+    @Override
+    public void setConfig(byte[] value) {
         try {
             rocksDB.put(configHandle, writeOptions, Constant.CONFIG, value);
         } catch (Exception e) {

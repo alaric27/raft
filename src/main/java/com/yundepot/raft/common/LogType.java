@@ -5,8 +5,9 @@ package com.yundepot.raft.common;
  * @date 2019/6/15 18:11
  */
 public enum LogType {
-    DATA(1),
-    CONFIG(2);
+    SET(1),
+    CONFIG(2),
+    DELETE(3);
 
     private final int value;
 

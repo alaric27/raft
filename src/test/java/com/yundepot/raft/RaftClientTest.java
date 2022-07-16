@@ -21,14 +21,13 @@ public class RaftClientTest {
         raftClient = new RaftClient("1:127.0.0.1:2727,2:127.0.0.1:2728,3:127.0.0.1:2729");
     }
 
-
-    @org.junit.Test
-    public void put() {
+    @Test
+    public void set() {
         long start = System.currentTimeMillis();
         for (long i = 1; i < 1000; i++) {
             byte[] key = ("aaa" + i).getBytes(StandardCharsets.UTF_8);
             byte[] value = getRandomString(10).getBytes(StandardCharsets.UTF_8);
-            raftClient.put(key, value);
+            raftClient.set(key, value);
         }
         System.out.println(System.currentTimeMillis() - start);
     }
@@ -37,6 +36,12 @@ public class RaftClientTest {
     public void get() {
         byte[] bytes = raftClient.get("aaa320".getBytes(StandardCharsets.UTF_8));
         System.out.println(new String(bytes));
+    }
+
+    @Test
+    public void delete() {
+        byte[] key = "aaa320".getBytes(StandardCharsets.UTF_8);
+        raftClient.delete(key);
     }
 
     @Test

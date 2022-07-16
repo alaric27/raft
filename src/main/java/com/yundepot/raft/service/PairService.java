@@ -12,7 +12,7 @@ public interface PairService {
     /**
      * 写入数据
      */
-    Response put(byte[] key, byte[] value);
+    Response set(byte[] key, byte[] value);
 
     /**
      * 读取数据
@@ -20,4 +20,11 @@ public interface PairService {
      * @return
      */
     Response get(byte[] key);
+
+    /**
+     * 删除
+     * @param key
+     * @return
+     */
+    Response delete(byte[] key);
 }
