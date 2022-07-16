@@ -132,7 +132,7 @@ public class RaftNode extends AbstractLifeCycle {
         this.raftConfig = raftConfig;
         this.clusterConfig = ClusterUtil.parserCluster(raftConfig.getCluster());
         this.localServer = ClusterUtil.getServer(clusterConfig, raftConfig.getServer());
-        this.stateMachine = new RocksDBStateMachine(raftConfig.getRootDir());
+        this.stateMachine = new RocksDBStateMachine(raftConfig);
         this.nodeStageStore = new NodeStateStore(raftConfig.getRootDir());
         this.logStore = new RocksDBLogStore(raftConfig);
         this.clusterConfigStore = new ClusterConfigStore(raftConfig.getRootDir());
@@ -155,8 +155,8 @@ public class RaftNode extends AbstractLifeCycle {
         executorService = new ThreadPoolExecutor(raftConfig.getTpMin(), raftConfig.getTpMax(), 60, TimeUnit.SECONDS,
                                                     new LinkedBlockingQueue<>(), new NamedThreadFactory("raft", true));
         scheduledExecutorService = Executors.newScheduledThreadPool(2, new NamedThreadFactory("raftScheduled", true));
-        electionTimer = new ScheduledTimer("election", raftConfig.getElectionTimeout(), () -> startPreVote(), RandomUtil::getRangeLong);
-        heartbeatTimer = new ScheduledTimer("heartbeat", raftConfig.getHeartbeatPeriod(), () -> sendHeartbeat());
+        electionTimer = new ScheduledTimer("election", raftConfig.getElectionTimeout(), this::startPreVote, RandomUtil::getRangeLong);
+        heartbeatTimer = new ScheduledTimer("heartbeat", raftConfig.getHeartbeatPeriod(), this::sendHeartbeat);
     }
 
     /**
@@ -844,16 +844,12 @@ public class RaftNode extends AbstractLifeCycle {
                 log.warn("await index {} interrupted", index, e);
             }
         }
-
-        if (lastAppliedIndex < index) {
-            return false;
-        }
-        return true;
+        return lastAppliedIndex >= index;
     }
 
     /**
      * 等待集群过半响应
-     * @return
+     * @return bool
      */
     public boolean awaitAppend() {
         int quorum = (clusterConfig.getServerList().size() + 1 ) / 2;

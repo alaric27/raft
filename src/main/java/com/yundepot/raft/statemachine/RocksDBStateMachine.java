@@ -8,6 +8,7 @@ import com.yundepot.raft.bean.InstallSnapshotRequest;
 import com.yundepot.raft.bean.SnapshotDataFile;
 import com.yundepot.raft.bean.SnapshotMetadata;
 import com.yundepot.raft.common.Constant;
+import com.yundepot.raft.config.RaftConfig;
 import com.yundepot.raft.exception.RaftException;
 import com.yundepot.raft.util.RaftFileUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -69,16 +70,18 @@ public class RocksDBStateMachine implements StateMachine {
     private WriteOptions writeOptions = new WriteOptions();
     private ColumnFamilyHandle defaultHandle;
     private ColumnFamilyHandle configHandle;
+    private RaftConfig raftConfig;
 
     static {
         RocksDB.loadLibrary();
     }
 
-    public RocksDBStateMachine(String rootDir) {
-        this.dataDir = rootDir + "data" + File.separator;
-        this.snapshotDir = rootDir + "snapshot" + File.separator;
+    public RocksDBStateMachine(RaftConfig raftConfig) {
+        this.raftConfig = raftConfig;
+        this.dataDir = raftConfig.getRootDir() + "data" + File.separator;
+        this.snapshotDir = raftConfig.getRootDir() + "snapshot" + File.separator;
         this.metadataFile = snapshotDir + "metadata";
-        this.snapshotTmpDir = rootDir + "snapshot.tmp" + File.separator;
+        this.snapshotTmpDir = raftConfig.getRootDir() + "snapshot.tmp" + File.separator;
         // 关闭rocksdb wal功能，因为raft log可以代替该功能
         writeOptions.setDisableWAL(true);
     }
@@ -152,8 +155,12 @@ public class RocksDBStateMachine implements StateMachine {
             options.setCreateIfMissing(true);
             options.setCreateMissingColumnFamilies(true);
 
+            ColumnFamilyOptions familyOptions = new ColumnFamilyOptions();
+            familyOptions.setPeriodicCompactionSeconds(raftConfig.getPeriodicCompactionSeconds());
+            familyOptions.setLevelCompactionDynamicLevelBytes(true);
+
             List<ColumnFamilyDescriptor> descriptorList = new ArrayList<>();
-            descriptorList.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY));
+            descriptorList.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, familyOptions));
             descriptorList.add(new ColumnFamilyDescriptor(Constant.CONFIG));
 
             List<ColumnFamilyHandle> handleList = new ArrayList<>();

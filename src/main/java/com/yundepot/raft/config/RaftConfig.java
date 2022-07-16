@@ -35,9 +35,9 @@ public class RaftConfig {
     private int tpMin = 20;
 
     /**
-     * snapshot定时器执行间隔, 单位秒
+     * snapshot定时器执行间隔, 单位秒, 默认12小时
      */
-    private int snapshotPeriod = 3600;
+    private long snapshotPeriod = 43200;
 
     /**
      * true表示主节点保存后就返回，然后异步同步给从节点
@@ -89,4 +89,9 @@ public class RaftConfig {
      * 读取时一致性级别, 默认最终一致性
      */
     private int consistencyLevel = 0;
+
+    /**
+     * rocksdb 状态机sst压缩间隔
+     */
+    private long periodicCompactionSeconds = 3600;
 }
