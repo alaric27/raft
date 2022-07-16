@@ -17,7 +17,7 @@ public class Peer {
     /**
      * 下一个要发的日志索引
      */
-    private long nextIndex;
+    private volatile long nextIndex;
 
     /**
      * 已被peer接收的最后一条日志索引

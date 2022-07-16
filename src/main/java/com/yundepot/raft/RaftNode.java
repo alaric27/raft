@@ -246,7 +246,7 @@ public class RaftNode extends AbstractLifeCycle {
             request.setCandidateId(localServer.getServerId());
             request.setTerm(currentTerm);
             request.setLastLogTerm(getLastLogTerm());
-            request.setLastLogIndex(logStore.getLastLogIndex());
+            request.setLastLogIndex(getLastLogIndex());
         });
 
         log.info("preVote request {}, to peer {}", request, peer.getServer().getServerId());
@@ -302,7 +302,7 @@ public class RaftNode extends AbstractLifeCycle {
             request.setCandidateId(localServer.getServerId());
             request.setTerm(currentTerm);
             request.setLastLogTerm(getLastLogTerm());
-            request.setLastLogIndex(logStore.getLastLogIndex());
+            request.setLastLogIndex(getLastLogIndex());
         });
 
         log.info("vote request {}, to peer {}", request, peer.getServer().getServerId());
@@ -438,6 +438,7 @@ public class RaftNode extends AbstractLifeCycle {
                 peer.setNextIndex(peer.getMatchIndex() + 1);
                 peer.setLastResponseStatus(true);
                 peer.setLastResponseTime(System.currentTimeMillis());
+                appendCondition.signalAll();
                 if (ClusterUtil.containsServer(clusterConfig, peer.getServer().getServerId())) {
                     advanceCommitIndex();
                 } else {
@@ -448,7 +449,6 @@ public class RaftNode extends AbstractLifeCycle {
                         catchUpCondition.signalAll();
                     }
                 }
-                appendCondition.signalAll();
             } else {
                 // 如果失败了, 往前追溯日志
                 long nextIndex = Math.min(response.getLastLogIndex() + 1, peer.getNextIndex() - 1);
@@ -697,9 +697,7 @@ public class RaftNode extends AbstractLifeCycle {
             peer.setInstallingSnapshot(false);
             stateMachine.closeSnapshotDataFile(list);
         }
-
-        long nextIndex = lastIncludedIndex + 1;
-        LockUtil.runWithLock(lock, () -> peer.setNextIndex(nextIndex));
+        peer.setNextIndex(lastIncludedIndex + 1);
         log.info("end send install snapshot request to server={}", peer.getServer().getServerId());
     }
 
