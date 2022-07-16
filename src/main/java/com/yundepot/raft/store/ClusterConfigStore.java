@@ -16,7 +16,7 @@ import java.nio.charset.StandardCharsets;
  * @date 2022/7/16  09:26
  */
 public class ClusterConfigStore {
-    private String fileName;
+    private final String fileName;
     private ClusterConfig cluster;
 
     public ClusterConfigStore(String rootDir) {
