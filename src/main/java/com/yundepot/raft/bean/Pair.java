@@ -16,4 +16,10 @@ import java.io.Serializable;
 public class Pair implements Serializable {
     private byte[] key;
     private byte[] value;
+    private long timeout;
+
+    public Pair(byte[] key, byte[] value) {
+        this.key = key;
+        this.value = value;
+    }
 }

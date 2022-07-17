@@ -10,9 +10,9 @@ import com.yundepot.raft.bean.Response;
 public interface PairService {
 
     /**
-     * 写入数据
+     * 写入数据，带过期时间
      */
-    Response set(byte[] key, byte[] value);
+    Response set(byte[] key, byte[] value, long second);
 
     /**
      * 读取数据

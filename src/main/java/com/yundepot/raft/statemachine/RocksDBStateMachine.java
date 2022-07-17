@@ -5,11 +5,13 @@ import cn.hutool.core.io.file.FileMode;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.yundepot.raft.bean.InstallSnapshotRequest;
+import com.yundepot.raft.bean.Pair;
 import com.yundepot.raft.bean.SnapshotDataFile;
 import com.yundepot.raft.bean.SnapshotMetadata;
 import com.yundepot.raft.common.Constant;
 import com.yundepot.raft.config.RaftConfig;
 import com.yundepot.raft.exception.RaftException;
+import com.yundepot.raft.util.ByteUtil;
 import com.yundepot.raft.util.RaftFileUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -99,7 +101,18 @@ public class RocksDBStateMachine implements StateMachine {
     @Override
     public byte[] get(byte[] key) {
         try {
-            return rocksDB.get(defaultHandle, key);
+            byte[] bytes = rocksDB.get(defaultHandle, key);
+            if (bytes == null) {
+                return null;
+            }
+
+            // 惰性删除
+            Pair pair = ByteUtil.decompose(bytes);
+            if (pair.getTimeout() != 0 && pair.getTimeout() < System.currentTimeMillis()) {
+                rocksDB.delete(key);
+                return null;
+            }
+            return pair.getValue();
         } catch (Exception e) {
             log.error("get data error", e);
             throw new RaftException("get data error", e);

@@ -10,13 +10,14 @@ import java.nio.ByteBuffer;
  */
 public class ByteUtil {
 
-    public static byte[] encode(byte[] key, byte[] value) {
-        int len = 4 + key.length + 4 + value.length;
+    public static byte[] encode(byte[] key, byte[] value, long timeout) {
+        int len = 4 + key.length + 4 + value.length + 8;
         ByteBuffer buffer = ByteBuffer.allocate(len);
         buffer.putInt(key.length);
         buffer.put(key);
         buffer.putInt(value.length);
         buffer.put(value);
+        buffer.putLong(timeout);
         return buffer.array();
     }
 
@@ -26,7 +27,8 @@ public class ByteUtil {
         buffer.get(key);
         byte[] value = new byte[buffer.getInt()];
         buffer.get(value);
-        return new Pair(key, value);
+        long timeout = buffer.getLong();
+        return new Pair(key, value, timeout);
     }
 
     /**
@@ -55,5 +57,23 @@ public class ByteUtil {
             values |= (bytes[i] & 0xff);
         }
         return values;
+    }
+
+    public static byte[] compose(byte[] bytes1, long timeout) {
+        byte[] bytes2 = longToBytes(timeout);
+        ByteBuffer buffer = ByteBuffer.allocate(bytes1.length + bytes2.length);
+        buffer.put(bytes1);
+        buffer.put(bytes2);
+        return buffer.array();
+    }
+
+    public static Pair decompose(byte[] bytes) {
+        Pair pair = new Pair();
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        byte[] value = new byte[bytes.length - 8];
+        buffer.get(value);
+        pair.setValue(value);
+        pair.setTimeout(buffer.getLong());
+        return pair;
     }
 }

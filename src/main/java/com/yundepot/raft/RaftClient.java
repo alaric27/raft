@@ -43,7 +43,20 @@ public class RaftClient {
     public void set(byte[] key, byte[] value) {
         assert key != null;
         assert value != null;
-        execute(()-> pairService.set(key, value));
+        execute(()-> pairService.set(key, value, 0L));
+    }
+
+    /**
+     *
+     * @param key
+     * @param value
+     * @param second 过期时间，单位 秒
+     */
+    public void set(byte[] key, byte[] value, long second) {
+        assert key != null;
+        assert value != null;
+        assert second > 0;
+        execute(()-> pairService.set(key, value, second));
     }
 
     /**

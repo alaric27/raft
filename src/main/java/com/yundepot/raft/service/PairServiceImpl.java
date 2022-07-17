@@ -24,13 +24,14 @@ public class PairServiceImpl implements PairService {
     }
 
     @Override
-    public Response set(byte[] key, byte[] value) {
+    public Response set(byte[] key, byte[] value, long second) {
         if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
             return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getClusterConfig(), raftNode.getLeaderId()));
         }
 
+        long timeout = System.currentTimeMillis() + second * 1000;
         // 数据同步写入raft集群
-        byte[] data = ByteUtil.encode(key, value);
+        byte[] data = ByteUtil.encode(key, value, timeout);
         raftNode.replicate(data, LogType.SET);
         return Response.success();
     }
