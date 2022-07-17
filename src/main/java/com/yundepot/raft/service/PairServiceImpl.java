@@ -1,6 +1,7 @@
 package com.yundepot.raft.service;
 
 import com.yundepot.raft.RaftNode;
+import com.yundepot.raft.bean.Pair;
 import com.yundepot.raft.bean.Response;
 import com.yundepot.raft.common.ConsistencyLevel;
 import com.yundepot.raft.common.ResponseCode;
@@ -24,14 +25,14 @@ public class PairServiceImpl implements PairService {
     }
 
     @Override
-    public Response set(byte[] key, byte[] value, long second) {
+    public Response set(Pair pair) {
         if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
             return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getClusterConfig(), raftNode.getLeaderId()));
         }
 
-        long timeout = System.currentTimeMillis() + second * 1000;
+        long timeout = System.currentTimeMillis() + pair.getTimeout() * 1000;
         // 数据同步写入raft集群
-        byte[] data = ByteUtil.encode(key, value, timeout);
+        byte[] data = ByteUtil.encode(pair.getKey(), pair.getValue(), timeout);
         raftNode.replicate(data, LogType.SET);
         return Response.success();
     }

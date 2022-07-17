@@ -2,6 +2,7 @@ package com.yundepot.raft;
 
 import com.yundepot.oaa.exception.ConnectionException;
 import com.yundepot.raft.bean.ClusterConfig;
+import com.yundepot.raft.bean.Pair;
 import com.yundepot.raft.bean.Response;
 import com.yundepot.raft.bean.Server;
 import com.yundepot.raft.common.ResponseCode;
@@ -43,7 +44,7 @@ public class RaftClient {
     public void set(byte[] key, byte[] value) {
         assert key != null;
         assert value != null;
-        execute(()-> pairService.set(key, value, 0L));
+        execute(()-> pairService.set(new Pair(key, value, 0)));
     }
 
     /**
@@ -56,7 +57,7 @@ public class RaftClient {
         assert key != null;
         assert value != null;
         assert second > 0;
-        execute(()-> pairService.set(key, value, second));
+        execute(()-> pairService.set(new Pair(key, value, second)));
     }
 
     /**

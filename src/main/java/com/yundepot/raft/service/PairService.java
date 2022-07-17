@@ -1,6 +1,7 @@
 package com.yundepot.raft.service;
 
 
+import com.yundepot.raft.bean.Pair;
 import com.yundepot.raft.bean.Response;
 
 /**
@@ -12,7 +13,7 @@ public interface PairService {
     /**
      * 写入数据，带过期时间
      */
-    Response set(byte[] key, byte[] value, long second);
+    Response set(Pair pair);
 
     /**
      * 读取数据
