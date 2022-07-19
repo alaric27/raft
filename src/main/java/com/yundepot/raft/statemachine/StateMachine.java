@@ -15,33 +15,26 @@ public interface StateMachine {
 
     /**
      * 向状态机写入数据
-     * @param key
-     * @param value
      */
-    void set(byte[] key, byte[] value);
+    void set(byte[] key, byte[] value, long timeout);
 
     /**
      * 读取数据
-     * @param key
-     * @return
      */
     byte[] get(byte[] key);
 
     /**
      * 删除数据
-     * @param key
      */
     void delete(byte[] key);
 
     /**
      * 写入集群配置
-     * @param value
      */
     void setConfig(byte[] value);
 
     /**
      * 读取集群配置
-     * @return
      */
     byte[] getConfig();
 
@@ -57,13 +50,11 @@ public interface StateMachine {
 
     /**
      * 向状态机安装快照,用于follower接收leader的快照
-     * @param request
      */
     boolean installSnapshot(InstallSnapshotRequest request);
 
     /**
      * 获取快照元数据
-     * @return
      */
     SnapshotMetadata getMetadata();
 

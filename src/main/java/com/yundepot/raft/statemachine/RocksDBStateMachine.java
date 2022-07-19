@@ -89,9 +89,9 @@ public class RocksDBStateMachine implements StateMachine {
     }
 
     @Override
-    public void set(byte[] key, byte[] value) {
+    public void set(byte[] key, byte[] value, long timeout) {
         try {
-            rocksDB.put(defaultHandle, writeOptions, key, value);
+            rocksDB.put(defaultHandle, writeOptions, key, ByteUtil.compose(value, timeout));
         } catch (Exception e) {
             log.error("write data error", e);
             throw new RaftException("write data error", e);

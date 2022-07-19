@@ -550,7 +550,7 @@ public class RaftNode extends AbstractLifeCycle {
         }
         if (entry.getLogType() == LogType.SET.getValue()) {
             Pair pair = ByteUtil.decode(entry.getData());
-            stateMachine.set(pair.getKey(), ByteUtil.compose(pair.getValue(), pair.getTimeout()));
+            stateMachine.set(pair.getKey(), pair.getValue(), pair.getTimeout());
         } else if (entry.getLogType() == LogType.CONFIG.getValue()) {
             // 应用到集群配置
             applyConfig(entry);
