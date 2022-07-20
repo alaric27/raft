@@ -15,7 +15,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClusterConfig implements Serializable {
+public class Configuration implements Serializable {
 
     /**
      * 集群中的节点

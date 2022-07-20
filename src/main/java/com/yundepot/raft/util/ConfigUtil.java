@@ -1,7 +1,7 @@
 package com.yundepot.raft.util;
 
 
-import com.yundepot.raft.bean.ClusterConfig;
+import com.yundepot.raft.bean.Configuration;
 import com.yundepot.raft.bean.Server;
 
 import java.util.ArrayList;
@@ -11,16 +11,16 @@ import java.util.List;
  * @author zhaiyanan
  * @date 2019/6/15 18:33
  */
-public class ClusterUtil {
+public class ConfigUtil {
 
     /**
      * 根据节点id，判断集群内是否包含该节点
-     * @param cluster
+     * @param config
      * @param serverId
      * @return
      */
-    public static boolean containsServer(ClusterConfig cluster, int serverId) {
-        return containsServer(cluster.getServerList(), serverId);
+    public static boolean containsServer(Configuration config, int serverId) {
+        return containsServer(config.getServerList(), serverId);
     }
 
     public static boolean containsServer(List<Server> serverList, int serverId) {
@@ -44,12 +44,12 @@ public class ClusterUtil {
 
     /**
      * 根据节点id，获取集群内节点
-     * @param cluster
+     * @param config
      * @param serverId
      * @return
      */
-    public static Server getServer(ClusterConfig cluster, int serverId) {
-        return getServer(cluster.getServerList(), serverId);
+    public static Server getServer(Configuration config, int serverId) {
+        return getServer(config.getServerList(), serverId);
     }
 
     public static Server getServer(List<Server> serverList, int serverId) {
@@ -63,18 +63,18 @@ public class ClusterUtil {
 
     /**
      * 解析集群配置
-     * @param clusterInfo
+     * @param serverListStr
      * @return
      */
-    public static ClusterConfig parserCluster(String clusterInfo) {
+    public static Configuration parserConfig(String serverListStr) {
         List<Server> serverList = new ArrayList<>();
-        String[] splitArray = clusterInfo.split(",");
+        String[] splitArray = serverListStr.split(",");
         for (String serverString : splitArray) {
             serverList.add(parserServer(serverString));
         }
-        ClusterConfig cluster = new ClusterConfig();
-        cluster.setServerList(serverList);
-        return cluster;
+        Configuration config = new Configuration();
+        config.setServerList(serverList);
+        return config;
     }
 
     /**

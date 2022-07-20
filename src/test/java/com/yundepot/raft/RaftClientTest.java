@@ -51,7 +51,7 @@ public class RaftClientTest {
 
     @Test
     public void getClusterInfo() {
-        System.out.println(JSON.toJSONString(raftClient.getClusterInfo()));
+        System.out.println(JSON.toJSONString(raftClient.getConfiguration()));
     }
 
     @Test

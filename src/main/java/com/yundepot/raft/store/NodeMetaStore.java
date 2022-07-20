@@ -3,7 +3,7 @@ package com.yundepot.raft.store;
 import cn.hutool.core.io.FileUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
-import com.yundepot.raft.bean.NodeState;
+import com.yundepot.raft.bean.NodeMeta;
 import com.yundepot.raft.util.RaftFileUtils;
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,12 +16,12 @@ import java.nio.charset.StandardCharsets;
  * @date 2022/6/26  13:21
  */
 @Slf4j
-public class NodeStateStore {
+public class NodeMetaStore {
 
     private String fileName;
-    private NodeState nodeState;
+    private NodeMeta nodeMeta;
 
-    public NodeStateStore(String rootDir) {
+    public NodeMetaStore(String rootDir) {
         this.fileName = rootDir + File.separator + "NodeState";
     }
 
@@ -29,21 +29,21 @@ public class NodeStateStore {
         File file = new File(fileName);
         if (file.exists()) {
             String content = FileUtil.readString(file, StandardCharsets.UTF_8);
-            this.nodeState = JSON.parseObject(content, new TypeReference<NodeState>(){}.getType());
+            this.nodeMeta = JSON.parseObject(content, new TypeReference<NodeMeta>(){}.getType());
         }
 
-        if (nodeState == null) {
-            nodeState = new NodeState();
+        if (nodeMeta == null) {
+            nodeMeta = new NodeMeta();
         }
     }
 
     public void update(long currentTerm, int votedFor) {
-        nodeState.setCurrentTerm(currentTerm);
-        nodeState.setVotedFor(votedFor);
-        RaftFileUtils.updateFile(fileName, JSON.toJSONString(nodeState));
+        nodeMeta.setCurrentTerm(currentTerm);
+        nodeMeta.setVotedFor(votedFor);
+        RaftFileUtils.updateFile(fileName, JSON.toJSONString(nodeMeta));
     }
 
-    public NodeState get() {
-        return nodeState;
+    public NodeMeta get() {
+        return nodeMeta;
     }
 }

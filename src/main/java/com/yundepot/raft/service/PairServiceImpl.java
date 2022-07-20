@@ -9,7 +9,7 @@ import com.yundepot.raft.common.ResponseCode;
 import com.yundepot.raft.statemachine.StateMachine;
 import com.yundepot.raft.common.LogType;
 import com.yundepot.raft.util.ByteUtil;
-import com.yundepot.raft.util.ClusterUtil;
+import com.yundepot.raft.util.ConfigUtil;
 
 /**
  * @author zhaiyanan
@@ -28,7 +28,7 @@ public class PairServiceImpl implements PairService {
     @Override
     public Response set(Pair pair) {
         if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
-            return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getClusterConfig(), raftNode.getLeaderId()));
+            return Response.fail(ResponseCode.NOT_LEADER.getValue(), ConfigUtil.getServer(raftNode.getConfiguration(), raftNode.getLeaderId()));
         }
 
         long timeout = System.currentTimeMillis() + pair.getTimeout() * 1000;
@@ -45,7 +45,7 @@ public class PairServiceImpl implements PairService {
         if (ConsistencyLevel.LINE.getValue() == raftNode.getRaftConfig().getConsistencyLevel()) {
             // 线性一致性不允许读follower
             if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
-                return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getClusterConfig(), raftNode.getLeaderId()));
+                return Response.fail(ResponseCode.NOT_LEADER.getValue(), ConfigUtil.getServer(raftNode.getConfiguration(), raftNode.getLeaderId()));
             }
             raftNode.getLock().unlock();
             try {
@@ -71,7 +71,7 @@ public class PairServiceImpl implements PairService {
     @Override
     public Response delete(byte[] key) {
         if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
-            return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getClusterConfig(), raftNode.getLeaderId()));
+            return Response.fail(ResponseCode.NOT_LEADER.getValue(), ConfigUtil.getServer(raftNode.getConfiguration(), raftNode.getLeaderId()));
         }
 
         // 数据同步写入raft集群
@@ -82,7 +82,7 @@ public class PairServiceImpl implements PairService {
     @Override
     public Response deleteRange(Range range) {
         if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
-            return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getClusterConfig(), raftNode.getLeaderId()));
+            return Response.fail(ResponseCode.NOT_LEADER.getValue(), ConfigUtil.getServer(raftNode.getConfiguration(), raftNode.getLeaderId()));
         }
 
         byte[] bytes = ByteUtil.encodeRange(range);

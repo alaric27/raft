@@ -3,7 +3,7 @@ package com.yundepot.raft.store;
 import cn.hutool.core.io.FileUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
-import com.yundepot.raft.bean.ClusterConfig;
+import com.yundepot.raft.bean.Configuration;
 import com.yundepot.raft.util.RaftFileUtils;
 
 import java.io.File;
@@ -15,28 +15,28 @@ import java.nio.charset.StandardCharsets;
  * @author zhaiyanan
  * @date 2022/7/16  09:26
  */
-public class ClusterConfigStore {
+public class ConfigurationStore {
     private final String fileName;
-    private ClusterConfig cluster;
+    private Configuration config;
 
-    public ClusterConfigStore(String rootDir) {
-        this.fileName = rootDir + File.separator + "ClusterConfig";
+    public ConfigurationStore(String rootDir) {
+        this.fileName = rootDir + File.separator + "Configuration";
     }
 
     public void load() {
         File file = new File(fileName);
         if (file.exists()) {
             String content = FileUtil.readString(file, StandardCharsets.UTF_8);
-            this.cluster = JSON.parseObject(content, new TypeReference<ClusterConfig>(){}.getType());
+            this.config = JSON.parseObject(content, new TypeReference<Configuration>(){}.getType());
         }
     }
 
-    public void update(ClusterConfig cluster) {
-        this.cluster = cluster;
-        RaftFileUtils.updateFile(fileName, JSON.toJSONString(cluster));
+    public void update(Configuration config) {
+        this.config = config;
+        RaftFileUtils.updateFile(fileName, JSON.toJSONString(config));
     }
 
-    public ClusterConfig get() {
-        return this.cluster;
+    public Configuration get() {
+        return this.config;
     }
 }

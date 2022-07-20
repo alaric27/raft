@@ -9,7 +9,7 @@ import org.rocksdb.AbstractCompactionFilterFactory;
 public class ExpireCompactionFilterFactory extends AbstractCompactionFilterFactory {
     @Override
     public AbstractCompactionFilter<?> createCompactionFilter(AbstractCompactionFilter.Context context) {
-        // todo  rockdsdb目前只支持通过java包装c++类的方式自定义CompactionFilter。 该功能尚未实现
+        // todo  rocksdb目前只支持通过java包装c++类的方式自定义CompactionFilter。 该功能尚未实现
         return null;
     }
 

@@ -3,7 +3,7 @@ package com.yundepot.raft.service;
 import com.yundepot.raft.RaftNode;
 import com.yundepot.raft.bean.*;
 import com.yundepot.raft.common.ResponseCode;
-import com.yundepot.raft.util.ClusterUtil;
+import com.yundepot.raft.util.ConfigUtil;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -24,7 +24,7 @@ public class RaftServiceImpl implements RaftService{
         try {
             VoteResponse voteResponse = VoteResponse.builder().voteGranted(false).term(raftNode.getCurrentTerm()).build();
             // 如果请求节点不属于当前集群，则不给其投票
-            if (!ClusterUtil.containsServer(raftNode.getClusterConfig(), request.getCandidateId())) {
+            if (!ConfigUtil.containsServer(raftNode.getConfiguration(), request.getCandidateId())) {
                 return voteResponse;
             }
             // 如果请求的term 小于当前节点的term，则不给其投票
@@ -47,7 +47,7 @@ public class RaftServiceImpl implements RaftService{
         raftNode.getLock().lock();
         try {
             VoteResponse voteResponse = VoteResponse.builder().voteGranted(false).term(raftNode.getCurrentTerm()).build();
-            if (!ClusterUtil.containsServer(raftNode.getClusterConfig(), request.getCandidateId())) {
+            if (!ConfigUtil.containsServer(raftNode.getConfiguration(), request.getCandidateId())) {
                 return voteResponse;
             }
             // 如果请求的term 小于当前节点的term，则不给其投票

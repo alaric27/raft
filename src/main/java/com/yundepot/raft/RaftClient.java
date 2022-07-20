@@ -6,7 +6,7 @@ import com.yundepot.raft.common.ResponseCode;
 import com.yundepot.raft.exception.RaftException;
 import com.yundepot.raft.service.PairService;
 import com.yundepot.raft.service.RaftAdminService;
-import com.yundepot.raft.util.ClusterUtil;
+import com.yundepot.raft.util.ConfigUtil;
 import com.yundepot.rpc.RpcClient;
 
 import java.lang.reflect.UndeclaredThrowableException;
@@ -23,15 +23,15 @@ public class RaftClient {
     private RpcClient rpcClient;
     private RaftAdminService adminService;
     private PairService pairService;
-    private ClusterConfig cluster;
+    private Configuration config;
 
-    public RaftClient(String cluster) {
-        this(ClusterUtil.parserCluster(cluster));
+    public RaftClient(String config) {
+        this(ConfigUtil.parserConfig(config));
     }
 
-    public RaftClient(ClusterConfig cluster) {
-        this.cluster = cluster;
-        this.leader = cluster.getServerList().get(0);
+    public RaftClient(Configuration config) {
+        this.config = config;
+        this.leader = config.getServerList().get(0);
         connect(leader);
     }
 
@@ -98,8 +98,8 @@ public class RaftClient {
      * 获取集群节点信息
      * @return
      */
-    public ClusterConfig getClusterInfo() {
-        return adminService.getClusterInfo();
+    public Configuration getConfiguration() {
+        return adminService.getConfiguration();
     }
 
     /**
@@ -152,7 +152,7 @@ public class RaftClient {
      */
     private Response execute(Callable<Response> task, int count){
         // 限制重试次数
-        if (count >= cluster.getServerList().size()) {
+        if (count >= config.getServerList().size()) {
             return Response.fail(ResponseCode.FAIL.getValue());
         }
 
@@ -171,8 +171,8 @@ public class RaftClient {
                 UndeclaredThrowableException ex = (UndeclaredThrowableException) e;
                 Throwable undeclaredThrowable = ex.getUndeclaredThrowable();
                 if (undeclaredThrowable instanceof ConnectionException) {
-                    if (count + 1 < cluster.getServerList().size()) {
-                        connect(cluster.getServerList().get(count + 1));
+                    if (count + 1 < config.getServerList().size()) {
+                        connect(config.getServerList().get(count + 1));
                         return execute(task, count + 1);
                     }
                 }
