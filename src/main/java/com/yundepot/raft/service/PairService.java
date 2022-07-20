@@ -2,6 +2,7 @@ package com.yundepot.raft.service;
 
 
 import com.yundepot.raft.bean.Pair;
+import com.yundepot.raft.bean.Range;
 import com.yundepot.raft.bean.Response;
 
 /**
@@ -17,15 +18,16 @@ public interface PairService {
 
     /**
      * 读取数据
-     * @param key
-     * @return
      */
     Response get(byte[] key);
 
     /**
      * 删除
-     * @param key
-     * @return
      */
     Response delete(byte[] key);
+
+    /**
+     * 范围删除
+     */
+    Response deleteRange(Range range);
 }

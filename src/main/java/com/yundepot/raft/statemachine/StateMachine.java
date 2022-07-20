@@ -29,6 +29,11 @@ public interface StateMachine {
     void delete(byte[] key);
 
     /**
+     * 范围删除
+     */
+    void deleteRange(byte[] begin, byte[] end);
+
+    /**
      * 写入集群配置
      */
     void setConfig(byte[] value);

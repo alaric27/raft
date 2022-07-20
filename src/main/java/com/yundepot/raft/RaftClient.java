@@ -1,10 +1,7 @@
 package com.yundepot.raft;
 
 import com.yundepot.oaa.exception.ConnectionException;
-import com.yundepot.raft.bean.ClusterConfig;
-import com.yundepot.raft.bean.Pair;
-import com.yundepot.raft.bean.Response;
-import com.yundepot.raft.bean.Server;
+import com.yundepot.raft.bean.*;
 import com.yundepot.raft.common.ResponseCode;
 import com.yundepot.raft.exception.RaftException;
 import com.yundepot.raft.service.PairService;
@@ -77,6 +74,16 @@ public class RaftClient {
     public void delete(byte[] key) {
         assert key != null;
         execute(()-> pairService.delete(key));
+    }
+
+    /**
+     * 范围删除
+     * [start, end)
+     */
+    public void deleteRange(byte[] start, byte[] end) {
+        assert start != null;
+        assert end != null;
+        execute(() -> pairService.deleteRange(new Range(start, end)));
     }
 
     /**

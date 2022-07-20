@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -123,6 +124,16 @@ public class RocksDBStateMachine implements StateMachine {
     public void delete(byte[] key) {
         try {
             rocksDB.delete(defaultHandle, key);
+        } catch (RocksDBException e) {
+            throw new RaftException("delete key error", e);
+        }
+    }
+
+    @Override
+    public void deleteRange(byte[] begin, byte[] end) {
+        try {
+            rocksDB.deleteRange(defaultHandle, begin, end);
+            rocksDB.deleteFilesInRanges(defaultHandle, Arrays.asList(begin, end), false);
         } catch (RocksDBException e) {
             throw new RaftException("delete key error", e);
         }

@@ -1,6 +1,7 @@
 package com.yundepot.raft.util;
 
 import com.yundepot.raft.bean.Pair;
+import com.yundepot.raft.bean.Range;
 
 import java.nio.ByteBuffer;
 
@@ -10,18 +11,20 @@ import java.nio.ByteBuffer;
  */
 public class ByteUtil {
 
-    public static byte[] encode(byte[] key, byte[] value, long timeout) {
+    public static byte[] encodePair(Pair pair) {
+        byte[] key = pair.getKey();
+        byte[] value = pair.getValue();
         int len = 4 + key.length + 4 + value.length + 8;
         ByteBuffer buffer = ByteBuffer.allocate(len);
         buffer.putInt(key.length);
         buffer.put(key);
         buffer.putInt(value.length);
         buffer.put(value);
-        buffer.putLong(timeout);
+        buffer.putLong(pair.getTimeout());
         return buffer.array();
     }
 
-    public static Pair decode(byte[] bytes) {
+    public static Pair decodePair(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         byte[] key = new byte[buffer.getInt()];
         buffer.get(key);
@@ -75,5 +78,24 @@ public class ByteUtil {
         pair.setValue(value);
         pair.setTimeout(buffer.getLong());
         return pair;
+    }
+
+    public static byte[] encodeRange(Range range) {
+        int len = 4 + range.getBegin().length + 4 + range.getEnd().length;
+        ByteBuffer buffer = ByteBuffer.allocate(len);
+        buffer.putInt(range.getBegin().length);
+        buffer.put(range.getBegin());
+        buffer.putInt(range.getEnd().length);
+        buffer.put(range.getEnd());
+        return buffer.array();
+    }
+
+    public static Range decodeRange(byte[] bytes) {
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        byte[] start = new byte[buffer.getInt()];
+        buffer.get(start);
+        byte[] end = new byte[buffer.getInt()];
+        buffer.get(end);
+        return new Range(start, end);
     }
 }

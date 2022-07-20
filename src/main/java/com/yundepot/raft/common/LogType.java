@@ -7,7 +7,8 @@ package com.yundepot.raft.common;
 public enum LogType {
     SET(1),
     CONFIG(2),
-    DELETE(3);
+    DELETE(3),
+    DELETE_RANGE(4);
 
     private final int value;
 

@@ -549,13 +549,16 @@ public class RaftNode extends AbstractLifeCycle {
             return;
         }
         if (entry.getLogType() == LogType.SET.getValue()) {
-            Pair pair = ByteUtil.decode(entry.getData());
+            Pair pair = ByteUtil.decodePair(entry.getData());
             stateMachine.set(pair.getKey(), pair.getValue(), pair.getTimeout());
         } else if (entry.getLogType() == LogType.CONFIG.getValue()) {
             // 应用到集群配置
             applyConfig(entry);
         } else if (entry.getLogType() == LogType.DELETE.getValue()) {
             stateMachine.delete(entry.getData());
+        } else if (entry.getLogType() == LogType.DELETE_RANGE.getValue()) {
+            Range range = ByteUtil.decodeRange(entry.getData());
+            stateMachine.deleteRange(range.getBegin(), range.getEnd());
         }
     }
 

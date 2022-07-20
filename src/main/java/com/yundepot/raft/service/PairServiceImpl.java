@@ -2,6 +2,7 @@ package com.yundepot.raft.service;
 
 import com.yundepot.raft.RaftNode;
 import com.yundepot.raft.bean.Pair;
+import com.yundepot.raft.bean.Range;
 import com.yundepot.raft.bean.Response;
 import com.yundepot.raft.common.ConsistencyLevel;
 import com.yundepot.raft.common.ResponseCode;
@@ -31,8 +32,9 @@ public class PairServiceImpl implements PairService {
         }
 
         long timeout = System.currentTimeMillis() + pair.getTimeout() * 1000;
+        pair.setTimeout(timeout);
         // 数据同步写入raft集群
-        byte[] data = ByteUtil.encode(pair.getKey(), pair.getValue(), timeout);
+        byte[] data = ByteUtil.encodePair(pair);
         raftNode.replicate(data, LogType.SET);
         return Response.success();
     }
@@ -74,6 +76,18 @@ public class PairServiceImpl implements PairService {
 
         // 数据同步写入raft集群
         raftNode.replicate(key, LogType.DELETE);
+        return Response.success();
+    }
+
+    @Override
+    public Response deleteRange(Range range) {
+        if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
+            return Response.fail(ResponseCode.NOT_LEADER.getValue(), ClusterUtil.getServer(raftNode.getClusterConfig(), raftNode.getLeaderId()));
+        }
+
+        byte[] bytes = ByteUtil.encodeRange(range);
+        // 数据同步写入raft集群
+        raftNode.replicate(bytes, LogType.DELETE_RANGE);
         return Response.success();
     }
 }
