@@ -5,11 +5,9 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.yundepot.oaa.common.AbstractLifeCycle;
 import com.yundepot.oaa.common.NamedThreadFactory;
-import com.yundepot.oaa.config.GenericOption;
 import com.yundepot.raft.bean.*;
 import com.yundepot.raft.common.*;
 import com.yundepot.raft.config.RaftConfig;
-import com.yundepot.raft.service.*;
 import com.yundepot.raft.statemachine.RocksDBStateMachine;
 import com.yundepot.raft.statemachine.StateMachine;
 import com.yundepot.raft.store.ConfigurationStore;
@@ -20,7 +18,6 @@ import com.yundepot.raft.util.ByteUtil;
 import com.yundepot.raft.util.ConfigUtil;
 import com.yundepot.raft.util.LockUtil;
 import com.yundepot.raft.util.RandomUtil;
-import com.yundepot.rpc.RpcServer;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.CollectionUtils;
@@ -125,7 +122,6 @@ public class RaftNode extends AbstractLifeCycle {
      */
     private ScheduledTimer electionTimer;
     private ScheduledTimer heartbeatTimer;
-    private RpcServer rpcServer;
     private ConfigurationStore configurationStore;
 
     public RaftNode(RaftConfig raftConfig) {
@@ -136,9 +132,6 @@ public class RaftNode extends AbstractLifeCycle {
         this.nodeStageStore = new NodeMetaStore(raftConfig.getRootDir());
         this.logStore = new RocksDBLogStore(raftConfig);
         this.configurationStore = new ConfigurationStore(raftConfig.getRootDir());
-
-        // 初始化rpc服务
-        initRpc();
 
         // 加载日志文件
         load();
@@ -186,26 +179,9 @@ public class RaftNode extends AbstractLifeCycle {
         }
     }
 
-    private void initRpc() {
-        this.rpcServer = new RpcServer(localServer.getPort());
-        this.rpcServer.option(GenericOption.TCP_HEARTBEAT_SWITCH, false);
-        // 注册Raft节点之间相互调用的服务
-        RaftService raftService = new RaftServiceImpl(this);
-        rpcServer.addService(RaftService.class.getName(), raftService);
-
-        // 注册集群管理服务
-        RaftAdminService raftAdminService = new RaftAdminServiceImpl(this);
-        rpcServer.addService(RaftAdminService.class.getName(), raftAdminService);
-
-        // 注册应用自己提供的服务
-        PairService pairService = new PairServiceImpl(this, stateMachine);
-        rpcServer.addService(PairService.class.getName(), pairService);
-    }
-
     @Override
     public void start() {
         super.start();
-        this.rpcServer.start();
         log.info("raft start with {}:{}", localServer.getHost(), localServer.getPort());
         // 建立快照
         scheduledExecutorService.scheduleWithFixedDelay(() -> takeSnapshot(),raftConfig.getSnapshotPeriod(),
@@ -216,7 +192,6 @@ public class RaftNode extends AbstractLifeCycle {
     @Override
     public void shutdown() {
         super.shutdown();
-        this.rpcServer.shutdown();
         executorService.shutdown();
         scheduledExecutorService.shutdown();
         logStore.shutdown();
@@ -920,5 +895,9 @@ public class RaftNode extends AbstractLifeCycle {
             lastAppliedIndex = index;
             commitIndex = index;
         }
+    }
+
+    public byte[] get(byte[] key) {
+        return stateMachine.get(key);
     }
 }

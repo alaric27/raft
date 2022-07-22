@@ -6,7 +6,6 @@ import com.yundepot.raft.bean.Range;
 import com.yundepot.raft.bean.Response;
 import com.yundepot.raft.common.ConsistencyLevel;
 import com.yundepot.raft.common.ResponseCode;
-import com.yundepot.raft.statemachine.StateMachine;
 import com.yundepot.raft.common.LogType;
 import com.yundepot.raft.util.ByteUtil;
 import com.yundepot.raft.util.ConfigUtil;
@@ -18,11 +17,9 @@ import com.yundepot.raft.util.ConfigUtil;
 public class PairServiceImpl implements PairService {
 
     private RaftNode raftNode;
-    private StateMachine stateMachine;
 
-    public PairServiceImpl(RaftNode raftNode, StateMachine stateMachine) {
+    public PairServiceImpl(RaftNode raftNode) {
         this.raftNode = raftNode;
-        this.stateMachine = stateMachine;
     }
 
     @Override
@@ -65,7 +62,7 @@ public class PairServiceImpl implements PairService {
                 raftNode.getLock().unlock();
             }
         }
-        return Response.success(stateMachine.get(key));
+        return Response.success(raftNode.get(key));
     }
 
     @Override
