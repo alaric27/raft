@@ -70,7 +70,7 @@ public class RaftNode extends AbstractLifeCycle {
     /**
      * 节点状态存储
      */
-    private NodeMetaStore nodeStageStore;
+    private NodeMetaStore nodeMetaStore;
 
     /**
      * 节点状态
@@ -129,7 +129,7 @@ public class RaftNode extends AbstractLifeCycle {
         this.configuration = ConfigUtil.parserConfig(raftConfig.getCluster());
         this.localServer = ConfigUtil.getServer(configuration, raftConfig.getServer());
         this.stateMachine = new RocksDBStateMachine(raftConfig);
-        this.nodeStageStore = new NodeMetaStore(raftConfig.getRootDir());
+        this.nodeMetaStore = new NodeMetaStore(raftConfig.getRootDir());
         this.logStore = new RocksDBLogStore(raftConfig);
         this.configurationStore = new ConfigurationStore(raftConfig.getRootDir());
 
@@ -158,12 +158,12 @@ public class RaftNode extends AbstractLifeCycle {
      */
     private void load() {
         logStore.loadLog();
-        nodeStageStore.load();
+        nodeMetaStore.load();
         stateMachine.loadSnapshot();
         configurationStore.load();
 
-        this.currentTerm = nodeStageStore.get().getCurrentTerm();
-        this.votedFor = nodeStageStore.get().getVotedFor();
+        this.currentTerm = nodeMetaStore.get().getCurrentTerm();
+        this.votedFor = nodeMetaStore.get().getVotedFor();
         this.commitIndex = stateMachine.getMetadata().getLastIncludedIndex();
         this.lastAppliedIndex = commitIndex;
 
@@ -256,7 +256,7 @@ public class RaftNode extends AbstractLifeCycle {
             log.info("Running for election in term {}", currentTerm);
             state = RaftRole.CANDIDATE;
             votedFor = localServer.getServerId();
-            nodeStageStore.update(currentTerm, votedFor);
+            nodeMetaStore.update(currentTerm, votedFor);
 
             // 过滤掉不在集群内的节点
             List<Peer> peerList = peerMap.values().stream().filter(peer -> ConfigUtil.containsServer(configuration, peer.getServer().getServerId())).collect(Collectors.toList());
@@ -334,7 +334,7 @@ public class RaftNode extends AbstractLifeCycle {
             currentTerm = newTerm;
             votedFor = Constant.ZERO;
             leaderId = Constant.ZERO;
-            nodeStageStore.update(currentTerm, votedFor);
+            nodeMetaStore.update(currentTerm, votedFor);
         }
         state = RaftRole.FOLLOWER;
         heartbeatTimer.stop();

@@ -66,7 +66,7 @@ public class RaftServiceImpl implements RaftService{
                 // 给别人投票后，下台，重置选举
                 raftNode.stepDown(request.getTerm());
                 raftNode.setVotedFor(request.getCandidateId());
-                raftNode.getNodeStageStore().update(raftNode.getCurrentTerm(), raftNode.getVotedFor());
+                raftNode.getNodeMetaStore().update(raftNode.getCurrentTerm(), raftNode.getVotedFor());
                 voteResponse.setVoteGranted(true);
                 voteResponse.setTerm(raftNode.getCurrentTerm());
             }
