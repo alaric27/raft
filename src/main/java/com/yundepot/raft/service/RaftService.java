@@ -32,4 +32,9 @@ public interface RaftService {
      */
     InstallSnapshotResponse installSnapshot(InstallSnapshotRequest request);
 
+    /**
+     * 获取Master commitIndex
+     * @return
+     */
+    Response<Long> getLeaderCommitIndex();
 }

@@ -75,7 +75,7 @@ public class RaftNode extends AbstractLifeCycle {
     /**
      * 节点状态
      */
-    private RaftRole state = RaftRole.FOLLOWER;
+    private volatile RaftRole state = RaftRole.FOLLOWER;
 
     /**
      * 当前任期
@@ -899,5 +899,30 @@ public class RaftNode extends AbstractLifeCycle {
 
     public byte[] get(byte[] key) {
         return stateMachine.get(key);
+    }
+
+    /**
+     * 保证在读取时 commitIndex, leader仍拥有领导权
+     * @return
+     */
+    public Long getLeaderCommitIndex() {
+        lock.lock();
+        try {
+            if (state == RaftRole.LEADER) {
+                long readIndex = commitIndex;
+                // 发送心跳等待确认当前节点是否依然为leader
+                peerMap.values().forEach(peer -> peer.setLastResponseStatus(false));
+                sendHeartbeat();
+                if (!awaitAppend()) {
+                    return null;
+                }
+                return readIndex;
+            } else if (state == RaftRole.FOLLOWER && leaderId != Constant.ZERO) {
+                return peerMap.get(leaderId).getPeerClient().getLeaderCommitIndex();
+            }
+        } finally {
+            lock.unlock();
+        }
+        return null;
     }
 }

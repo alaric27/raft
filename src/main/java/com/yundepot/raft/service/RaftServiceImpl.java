@@ -138,6 +138,11 @@ public class RaftServiceImpl implements RaftService{
         return response;
     }
 
+    @Override
+    public Response<Long> getLeaderCommitIndex() {
+        return Response.success(raftNode.getLeaderCommitIndex());
+    }
+
     /**
      * 判断投票请求是不是比当前节点更新
      * 如果最后日志的term 大于当前节点的最后日志的term 或

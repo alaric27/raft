@@ -5,6 +5,8 @@ import com.yundepot.raft.bean.*;
 import com.yundepot.raft.service.RaftService;
 import com.yundepot.rpc.RpcClient;
 
+import java.util.Optional;
+
 /**
  * 集群内节点之前通信
  * @author zhaiyanan
@@ -39,5 +41,10 @@ public class PeerClient {
 
     public InstallSnapshotResponse installSnapshot(InstallSnapshotRequest request) {
         return raftService.installSnapshot(request);
+    }
+
+    public Long getLeaderCommitIndex() {
+        Response<Long> response = raftService.getLeaderCommitIndex();
+        return Optional.ofNullable(response).map(res -> res.getData()).orElse(null);
     }
 }

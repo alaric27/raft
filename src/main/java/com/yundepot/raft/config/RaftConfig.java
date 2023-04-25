@@ -86,11 +86,6 @@ public class RaftConfig {
     private long keepLogNum = 1024;
 
     /**
-     * 读取时一致性级别, 默认最终一致性
-     */
-    private int consistencyLevel = 0;
-
-    /**
      * rocksdb 状态机sst压缩间隔
      */
     private long periodicCompactionSeconds = 3600;

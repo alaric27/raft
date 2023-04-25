@@ -2,6 +2,7 @@ package com.yundepot.raft;
 
 import com.yundepot.oaa.exception.ConnectionException;
 import com.yundepot.raft.bean.*;
+import com.yundepot.raft.common.ConsistencyLevel;
 import com.yundepot.raft.common.ResponseCode;
 import com.yundepot.raft.exception.RaftException;
 import com.yundepot.raft.service.PairService;
@@ -64,8 +65,13 @@ public class RaftClient {
      */
     public byte[] get(byte[] key) {
         assert key != null;
-        Response response = execute(()-> pairService.get(key));
-        return (byte[]) response.getData();
+        Response<byte[]> response = execute(()-> pairService.get(new GetRequest(key)));
+        return response.getData();
+    }
+
+    public byte[] get(byte[] key, ConsistencyLevel level) {
+        Response<byte[]> response = execute(() -> pairService.get(new GetRequest(key, level.getValue())));
+        return response.getData();
     }
 
     /**

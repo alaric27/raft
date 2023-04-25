@@ -1,6 +1,7 @@
 package com.yundepot.raft.service;
 
 
+import com.yundepot.raft.bean.GetRequest;
 import com.yundepot.raft.bean.Pair;
 import com.yundepot.raft.bean.Range;
 import com.yundepot.raft.bean.Response;
@@ -19,7 +20,7 @@ public interface PairService {
     /**
      * 读取数据
      */
-    Response get(byte[] key);
+    Response get(GetRequest request);
 
     /**
      * 删除

@@ -1,6 +1,7 @@
 package com.yundepot.raft.service;
 
 import com.yundepot.raft.RaftNode;
+import com.yundepot.raft.bean.GetRequest;
 import com.yundepot.raft.bean.Pair;
 import com.yundepot.raft.bean.Range;
 import com.yundepot.raft.bean.Response;
@@ -9,6 +10,8 @@ import com.yundepot.raft.common.ResponseCode;
 import com.yundepot.raft.common.LogType;
 import com.yundepot.raft.util.ByteUtil;
 import com.yundepot.raft.util.ConfigUtil;
+
+import java.util.Objects;
 
 /**
  * @author zhaiyanan
@@ -37,20 +40,14 @@ public class PairServiceImpl implements PairService {
     }
 
     @Override
-    public Response get(byte[] key) {
+    public Response get(GetRequest request) {
         // 线性一致性读
-        if (ConsistencyLevel.LINE.getValue() == raftNode.getRaftConfig().getConsistencyLevel()) {
-            // 线性一致性不允许读follower
-            if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
-                return Response.fail(ResponseCode.NOT_LEADER.getValue(), ConfigUtil.getServer(raftNode.getConfiguration(), raftNode.getLeaderId()));
-            }
+        if (Objects.equals(request.getConsistencyLevel(), ConsistencyLevel.LINE.getValue())) {
             raftNode.getLock().unlock();
             try {
-                long readIndex = raftNode.getCommitIndex();
-                // 发送心跳等待确认当前节点是否依然为leader
-                raftNode.sendHeartbeat();
-                raftNode.getPeerMap().values().forEach(peer -> peer.setLastResponseStatus(false));
-                if (!raftNode.awaitAppend()) {
+                // 获取leader 的readIndex
+                Long readIndex = raftNode.getLeaderCommitIndex();
+                if (Objects.isNull(readIndex)) {
                     return Response.fail(ResponseCode.FAIL.getValue());
                 }
 
@@ -62,7 +59,7 @@ public class PairServiceImpl implements PairService {
                 raftNode.getLock().unlock();
             }
         }
-        return Response.success(raftNode.get(key));
+        return Response.success(raftNode.get(request.getKey()));
     }
 
     @Override
