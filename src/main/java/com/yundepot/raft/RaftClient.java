@@ -42,7 +42,7 @@ public class RaftClient {
     public void set(byte[] key, byte[] value) {
         assert key != null;
         assert value != null;
-        execute(()-> pairService.set(new Pair(key, value, 0)));
+        execute(()-> pairService.set(new Pair(key, value, -1)));
     }
 
     /**

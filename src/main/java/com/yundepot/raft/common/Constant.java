@@ -12,5 +12,6 @@ public class Constant {
      * 代表没有leader
      */
     public static final int ZERO = 0;
+    public static final long NO_EXPIRE_TIME = -1L;
     public static final byte[] CONFIG = "config".getBytes(StandardCharsets.UTF_8);
 }

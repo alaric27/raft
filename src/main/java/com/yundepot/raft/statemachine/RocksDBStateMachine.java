@@ -109,7 +109,7 @@ public class RocksDBStateMachine implements StateMachine {
 
             // 惰性删除
             Pair pair = ByteUtil.decompose(bytes);
-            if (pair.getTimeout() != 0 && pair.getTimeout() < System.currentTimeMillis()) {
+            if (pair.getTimeout() != Constant.NO_EXPIRE_TIME && pair.getTimeout() < System.currentTimeMillis()) {
                 rocksDB.delete(key);
                 return null;
             }
