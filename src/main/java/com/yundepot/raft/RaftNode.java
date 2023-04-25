@@ -525,7 +525,8 @@ public class RaftNode extends AbstractLifeCycle {
         }
         if (entry.getLogType() == LogType.SET.getValue()) {
             Pair pair = ByteUtil.decodePair(entry.getData());
-            stateMachine.set(pair.getKey(), pair.getValue(), pair.getTimeout());
+            byte[] value = ByteUtil.compose(pair.getValue(), pair.getTimeout());
+            stateMachine.set(pair.getKey(), value);
         } else if (entry.getLogType() == LogType.CONFIG.getValue()) {
             // 应用到集群配置
             applyConfig(entry);
@@ -898,7 +899,19 @@ public class RaftNode extends AbstractLifeCycle {
     }
 
     public byte[] get(byte[] key) {
-        return stateMachine.get(key);
+        byte[] bytes = stateMachine.get(key);
+        if (bytes == null || bytes.length == 0) {
+            return null;
+        }
+
+        // 惰性删除
+        Pair pair = ByteUtil.decompose(bytes);
+        if (pair.getTimeout() != Constant.NO_EXPIRE_TIME && pair.getTimeout() < System.currentTimeMillis()) {
+            // 触发key删除逻辑
+            replicate(key, LogType.DELETE);
+            return null;
+        }
+        return pair.getValue();
     }
 
     /**

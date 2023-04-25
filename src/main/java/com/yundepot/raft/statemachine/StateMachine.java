@@ -16,7 +16,7 @@ public interface StateMachine {
     /**
      * 向状态机写入数据
      */
-    void set(byte[] key, byte[] value, long timeout);
+    void set(byte[] key, byte[] value);
 
     /**
      * 读取数据

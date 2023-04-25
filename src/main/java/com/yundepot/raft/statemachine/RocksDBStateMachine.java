@@ -90,9 +90,9 @@ public class RocksDBStateMachine implements StateMachine {
     }
 
     @Override
-    public void set(byte[] key, byte[] value, long timeout) {
+    public void set(byte[] key, byte[] value) {
         try {
-            rocksDB.put(defaultHandle, writeOptions, key, ByteUtil.compose(value, timeout));
+            rocksDB.put(defaultHandle, writeOptions, key, value);
         } catch (Exception e) {
             log.error("write data error", e);
             throw new RaftException("write data error", e);
@@ -102,18 +102,7 @@ public class RocksDBStateMachine implements StateMachine {
     @Override
     public byte[] get(byte[] key) {
         try {
-            byte[] bytes = rocksDB.get(defaultHandle, key);
-            if (bytes == null) {
-                return null;
-            }
-
-            // 惰性删除
-            Pair pair = ByteUtil.decompose(bytes);
-            if (pair.getTimeout() != Constant.NO_EXPIRE_TIME && pair.getTimeout() < System.currentTimeMillis()) {
-                rocksDB.delete(key);
-                return null;
-            }
-            return pair.getValue();
+            return rocksDB.get(defaultHandle, key);
         } catch (Exception e) {
             log.error("get data error", e);
             throw new RaftException("get data error", e);
