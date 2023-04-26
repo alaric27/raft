@@ -119,9 +119,4 @@ public class RaftAdminServiceImpl implements RaftAdminService {
         }
         return response;
     }
-
-    @Override
-    public long getCommitIndex() {
-        return raftNode.getCommitIndex();
-    }
 }

@@ -127,14 +127,6 @@ public class RaftClient {
         return execute(() -> adminService.removePeer(server));
     }
 
-    /**
-     * 获取节点的日志提交索引
-     * @return
-     */
-    public long getCommitIndex() {
-        return adminService.getCommitIndex();
-    }
-
     private void connect(Server leader) {
         if (rpcClient != null) {
             rpcClient.shutdown();

@@ -34,10 +34,4 @@ public interface RaftAdminService {
      * @return
      */
     Response removePeer(Server server);
-
-    /**
-     * 获取节点的日志提交索引
-     * @return
-     */
-    long getCommitIndex();
 }

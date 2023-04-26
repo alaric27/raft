@@ -74,11 +74,6 @@ public class RaftClientTest {
         System.out.println(JSON.toJSONString(response));
     }
 
-    @Test
-    public void getCommitIndex() {
-        System.out.println(raftClient.getCommitIndex());
-    }
-
     public static String getRandomString(int length) {
         String str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         Random random = new Random();
