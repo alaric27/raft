@@ -13,13 +13,13 @@ public interface RaftAdminService {
      * 获取leader
      * @return
      */
-    Server getLeader();
+    Response<Server> getLeader();
 
     /**
      * 获取集群节点信息
      * @return
      */
-    Configuration getConfiguration();
+    Response<Configuration> getConfiguration();
 
     /**
      * 添加节点

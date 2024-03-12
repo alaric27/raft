@@ -10,8 +10,11 @@ import com.yundepot.raft.service.PairService;
 import com.yundepot.raft.service.RaftAdminService;
 import com.yundepot.raft.util.ConfigUtil;
 import com.yundepot.rpc.RpcClient;
+import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.UndeclaredThrowableException;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /**
@@ -25,18 +28,13 @@ public class RaftClient {
     private RpcClient rpcClient;
     private RaftAdminService adminService;
     private PairService pairService;
-    private Configuration config;
+    private List<Server> serverList;
 
     public RaftClient(String config) {
-        this(ConfigUtil.parserConfig(config));
+        this.serverList = ConfigUtil.parseServerList(config);
+        assert !CollectionUtils.isEmpty(serverList);
+        connect(serverList.get(0));
     }
-
-    public RaftClient(Configuration config) {
-        this.config = config;
-        this.leader = config.getServerList().get(0);
-        connect(leader);
-    }
-
     /**
      * 写入数据
      */
@@ -98,7 +96,8 @@ public class RaftClient {
      * @return
      */
     public Server getLeader() {
-        return adminService.getLeader();
+        Response<Server> response = execute(() -> adminService.getLeader());
+        return Optional.ofNullable(response).map(r -> r.getData()).orElse(null);
     }
 
     /**
@@ -106,7 +105,8 @@ public class RaftClient {
      * @return
      */
     public Configuration getConfiguration() {
-        return adminService.getConfiguration();
+        Response<Configuration> response = execute(() -> adminService.getConfiguration());
+        return Optional.ofNullable(response).map(r -> r.getData()).orElse(null);
     }
 
     /**
@@ -151,7 +151,7 @@ public class RaftClient {
      */
     private Response execute(Callable<Response> task, int count){
         // 限制重试次数
-        if (count >= config.getServerList().size()) {
+        if (count >= serverList.size()) {
             return Response.fail(ResponseCode.FAIL.getValue());
         }
 
@@ -170,8 +170,8 @@ public class RaftClient {
                 UndeclaredThrowableException ex = (UndeclaredThrowableException) e;
                 Throwable undeclaredThrowable = ex.getUndeclaredThrowable();
                 if (undeclaredThrowable instanceof ConnectionException) {
-                    if (count + 1 < config.getServerList().size()) {
-                        connect(config.getServerList().get(count + 1));
+                    if (count + 1 < serverList.size()) {
+                        connect(serverList.get(count + 1));
                         return execute(task, count + 1);
                     }
                 }

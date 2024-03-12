@@ -90,4 +90,20 @@ public class ConfigUtil {
         server.setPort(Integer.parseInt(splitServer[2]));
         return server;
     }
+
+    /**
+     *
+     */
+    public static List<Server> parseServerList(String serverString) {
+        List<Server> serverList = new ArrayList<>();
+        String[] splitArray = serverString.split(",");
+        for (String word : splitArray) {
+            String[] splitServer = word.split(":");
+            Server server = new Server();
+            server.setHost(splitServer[0]);
+            server.setPort(Integer.parseInt(splitServer[1]));
+            serverList.add(server);
+        }
+        return serverList;
+    }
 }

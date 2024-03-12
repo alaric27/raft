@@ -18,7 +18,7 @@ public class RaftClientTest {
 
     @Before
     public void before() {
-        raftClient = new RaftClient("1:127.0.0.1:2727,2:127.0.0.1:2728,3:127.0.0.1:2729");
+        raftClient = new RaftClient("127.0.0.1:2727,127.0.0.1:2728,127.0.0.1:2729");
     }
 
     @Test

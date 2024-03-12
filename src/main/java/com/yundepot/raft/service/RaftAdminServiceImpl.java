@@ -27,13 +27,13 @@ public class RaftAdminServiceImpl implements RaftAdminService {
     }
 
     @Override
-    public Server getLeader() {
-        return ConfigUtil.getServer(raftNode.getConfiguration(), raftNode.getLeaderId());
+    public Response<Server> getLeader() {
+        return Response.success(ConfigUtil.getServer(raftNode.getConfiguration(), raftNode.getLeaderId()));
     }
 
     @Override
-    public Configuration getConfiguration() {
-        return raftNode.getConfiguration();
+    public Response<Configuration> getConfiguration() {
+        return Response.success(raftNode.getConfiguration());
     }
 
     @Override
