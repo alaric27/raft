@@ -32,7 +32,10 @@ public class RaftAdminServiceImpl implements RaftAdminService {
     }
 
     @Override
-    public Response<Configuration> getConfiguration() {
+    public Response getConfiguration() {
+        if (raftNode.getLeaderId() != raftNode.getLocalServer().getServerId()) {
+            return Response.fail(ResponseCode.NOT_LEADER.getValue(), ConfigUtil.getServer(raftNode.getConfiguration(), raftNode.getLeaderId()));
+        }
         return Response.success(raftNode.getConfiguration());
     }
 
