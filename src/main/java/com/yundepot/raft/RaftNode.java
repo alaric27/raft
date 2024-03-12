@@ -860,7 +860,6 @@ public class RaftNode extends AbstractLifeCycle {
     public void appendLogEntry(AppendLogRequest request) {
         List<LogEntry> entries = new ArrayList<>();
         long firstLogIndex = logStore.getFirstLogIndex();
-        long lastLogIndex = logStore.getLastLogIndex();
 
         for (LogEntry entry : request.getLogEntryList()) {
             long index = entry.getIndex();
@@ -868,7 +867,7 @@ public class RaftNode extends AbstractLifeCycle {
                 continue;
             }
             // 如果已经存在的日志条目和新的产生冲突（索引值相同但是任期号不同），删除这一条和之后所有的日志
-            if (lastLogIndex >= index) {
+            if (logStore.getLastLogIndex() >= index) {
                 if (getEntryTerm(index) == entry.getTerm()) {
                     continue;
                 }
