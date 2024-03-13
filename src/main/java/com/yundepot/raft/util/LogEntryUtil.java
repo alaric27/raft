@@ -15,7 +15,6 @@ import java.util.List;
  * @author zhaiyanan
  * @date 2022/6/25  21:13
  */
-@Slf4j
 public class LogEntryUtil {
 
     public static byte[] encode(LogEntry logEntry) {
